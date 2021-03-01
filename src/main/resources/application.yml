@@ -1,0 +1,13 @@
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          google:
+             authorization-uri: https://accounts.google.com/o/oauth2/auth
+             token-uri: https://oauth2.googleapis.com/token
+        registration:
+          google:
+            client-id: sampleid
+            client-secret: samplesecrete
+            scope: https://www.googleapis.com/auth/photoslibrary.readonly,openid
