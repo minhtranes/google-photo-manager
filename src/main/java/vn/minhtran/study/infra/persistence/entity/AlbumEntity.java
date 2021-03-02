@@ -10,11 +10,14 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import vn.minhtran.study.infra.cache.KeyEntity;
 
 @Entity
 @Table(name = "albums")
 @Access(AccessType.PROPERTY)
-public class AlbumEntity implements Serializable {
+public class AlbumEntity implements Serializable,KeyEntity<Long> {
 
 	private static final long serialVersionUID = 440751448351914335L;
 
@@ -49,5 +52,11 @@ public class AlbumEntity implements Serializable {
 	}
 	public void setStatus(String status) {
 		this.status = status;
+	}
+	
+	@Transient
+	@Override
+	public Long getKey() {
+		return id;
 	}
 }

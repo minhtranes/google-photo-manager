@@ -1,2 +1,4 @@
-# google-photo-manager
+# Google Photo Manager
+## Persistence support
+
  
