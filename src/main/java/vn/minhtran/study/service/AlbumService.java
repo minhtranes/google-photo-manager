@@ -12,5 +12,9 @@ public interface AlbumService {
 
 	AlbumStatus albumLocalStatus(String albumId);
 
-	void addAlbum(String albumId, String albumTitle);
+	void addAlbum(String albumId, String albumTitle, int size);
+
+	int getAlbumSize(String albumId);
+
+	void downloadComplete(String albumId);
 }

@@ -45,8 +45,7 @@ public class AlbumController {
 				String albumTitle = albumTitleNode.textValue();
 
 				if (shouldDownloadAlbum(albumId, albumTitle)) {
-					
-					albumService.addAlbum(albumId,albumTitle);
+
 					LOGGER.info("Reading album {}...", albumTitle);
 					try {
 						JsonNode albumContent = albumService
@@ -54,6 +53,8 @@ public class AlbumController {
 						JsonNode mediaItemsCon = albumContent
 								.findValue("mediaItems");
 						if (mediaItemsCon.isArray()) {
+							int size = mediaItemsCon.size();
+							albumService.addAlbum(albumId, albumTitle, size);
 							for (JsonNode mcj : mediaItemsCon) {
 								String filename = mcj.findValue("filename")
 										.textValue();
@@ -71,7 +72,7 @@ public class AlbumController {
 									LOGGER.info("Download file [{}]...",
 											filename);
 									mediaService.downloadPhoto(baseUrl,
-											albumTitle, width, height,
+											albumId, width, height,
 											filename);
 								});
 							}

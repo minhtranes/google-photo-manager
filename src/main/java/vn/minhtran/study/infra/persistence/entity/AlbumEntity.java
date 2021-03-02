@@ -10,7 +10,6 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import vn.minhtran.study.infra.cache.KeyEntity;
-import vn.minhtran.study.service.impl.AlbumStatus;
 
 @Entity
 @Table(name = "albums")
@@ -21,8 +20,15 @@ public class AlbumEntity implements Serializable, KeyEntity<String> {
 
 	private String albumId;
 	private String title;
-	private AlbumStatus status;
+	private String status;
+	private Integer numOfImage;
 
+	public Integer getNumOfImage() {
+		return numOfImage;
+	}
+	public void setNumOfImage(Integer numOfImage) {
+		this.numOfImage = numOfImage;
+	}
 	@Id
 	public String getAlbumId() {
 		return albumId;
@@ -36,11 +42,11 @@ public class AlbumEntity implements Serializable, KeyEntity<String> {
 	public void setTitle(String title) {
 		this.title = title;
 	}
-	public AlbumStatus getStatus() {
+	public String getStatus() {
 		return status;
 	}
 	public void setStatus(String status) {
-		this.status = AlbumStatus.valueOf(status);
+		this.status = status;
 	}
 
 	@Transient

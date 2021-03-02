@@ -12,4 +12,14 @@ public class LocalStorageProperties {
 		this.directory = directory;
 	}
 
+	private String archiveDirectory;
+
+	public String getArchiveDirectory() {
+		return archiveDirectory;
+	}
+
+	public void setArchiveDirectory(String archiveDirectory) {
+		this.archiveDirectory = archiveDirectory;
+	}
+
 }
