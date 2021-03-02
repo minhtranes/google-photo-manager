@@ -38,18 +38,20 @@ public class MediaDownloadCompletionScheduler {
 		for (File dir : listFiles) {
 			if (dir.isDirectory() && !archiveDir.equals(dir)) {
 				File[] images = dir.listFiles();
-				String albumId = dir.getName();
-				int albumSize = albumService.getAlbumSize(albumId);
-				if (images.length == albumSize) {
-					LOGGER.info("Album {} download completed", albumId);
-					albumService.downloadComplete(albumId);
-					try {
-						Files.move(dir.toPath(),
-								archiveDir.toPath().resolve(albumId),
-								StandardCopyOption.REPLACE_EXISTING);
-					} catch (IOException e) {
-						LOGGER.error("Failed to move dir from [{}] to [{}]",
-								dir.toString(), archiveDir.toString(), e);
+				if (images.length > 0) {
+					String albumId = dir.getName();
+					int albumSize = albumService.getAlbumSize(albumId);
+					if (images.length == albumSize) {
+						LOGGER.info("Album {} download completed", albumId);
+						albumService.downloadComplete(albumId);
+						try {
+							Files.move(dir.toPath(),
+									archiveDir.toPath().resolve(albumId),
+									StandardCopyOption.REPLACE_EXISTING);
+						} catch (IOException e) {
+							LOGGER.error("Failed to move dir from [{}] to [{}]",
+									dir.toString(), archiveDir.toString(), e);
+						}
 					}
 				}
 			}
