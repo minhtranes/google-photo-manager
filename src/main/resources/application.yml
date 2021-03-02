@@ -11,6 +11,19 @@ spring:
             client-id: sampleid
             client-secret: samplesecrete
             scope: https://www.googleapis.com/auth/photoslibrary.readonly,openid
+   datasource:
+      url: jdbc:h2:file:./googlephotos
+      driverClassName: org.h2.Driver
+      username: sa
+      password: 
+      platform: h2
+   jpa:
+      database-platform: org.hibernate.dialect.H2Dialect
+      generate-ddl: true
+      hibernate.ddl-auto: update
+   h2.console:
+      enabled: true
+      path: /data
 storage:
    directory: /home/storage
 media.download:
