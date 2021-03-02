@@ -13,7 +13,7 @@ public abstract class RestorableCache<K extends Serializable, V extends KeyEntit
 
 	private Map<K, V> store = new ConcurrentHashMap<>();
 
-	public V put(V value) {
+	protected V put(V value) {
 		store.put(value.getKey(), value);
 		executor.execute(() -> {
 			getRepository().save(value);
@@ -21,7 +21,7 @@ public abstract class RestorableCache<K extends Serializable, V extends KeyEntit
 		return value;
 	}
 
-	public boolean exist(K key) {
+	protected boolean exist(K key) {
 		return store.containsKey(key);
 	}
 
@@ -33,6 +33,10 @@ public abstract class RestorableCache<K extends Serializable, V extends KeyEntit
 		all.forEach(s -> {
 			store.put(s.getKey(), s);
 		});
+	}
+
+	protected V get(K key) {
+		return store.get(key);
 	}
 
 }

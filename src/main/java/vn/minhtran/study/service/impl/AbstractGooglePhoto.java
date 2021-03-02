@@ -10,7 +10,9 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import vn.minhtran.study.infra.cache.RestorableCache;
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 
-abstract class AbstractGooglePhoto extends RestorableCache<Long, AlbumEntity> {
+abstract class AbstractGooglePhoto
+		extends
+			RestorableCache<String, AlbumEntity> {
 
 	@Autowired
 	private OAuth2AuthorizedClientService authorizedClientService;

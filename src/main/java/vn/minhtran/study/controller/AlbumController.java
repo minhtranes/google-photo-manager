@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.MediaService;
+import vn.minhtran.study.service.impl.AlbumStatus;
 
 @RestController
 @RequestMapping("albums")
@@ -39,42 +40,58 @@ public class AlbumController {
 		if (albumsCon.isArray()) {
 			for (JsonNode al : albumsCon) {
 				JsonNode idValueNode = al.findValue("id");
-				String id = idValueNode.textValue();
-				JsonNode titleNode = al.findValue("title");
-				String title = titleNode.textValue();
+				String albumId = idValueNode.textValue();
+				JsonNode albumTitleNode = al.findValue("title");
+				String albumTitle = albumTitleNode.textValue();
 
-				LOGGER.info("Reading album {}...", title);
-				try {
-					JsonNode albumContent = albumService.albumContent(id);
-					JsonNode mediaItemsCon = albumContent
-							.findValue("mediaItems");
-					if (mediaItemsCon.isArray()) {
-						for (JsonNode mcj : mediaItemsCon) {
-							String filename = mcj.findValue("filename")
-									.textValue();
-							JsonNode mediaMetadata = mcj
-									.findParent("mediaMetadata");
-							String width = mediaMetadata.findValue("width")
-									.textValue();
-							String height = mediaMetadata.findValue("height")
-									.textValue();
-							final String baseUrl = String.format("%s=w%s-h%s",
-									mcj.findValue("baseUrl").textValue(), width,
-									height);
-							mediaDownloadExecutor.execute(() -> {
-								LOGGER.info("Download file [{}]...", filename);
-								mediaService.downloadPhoto(baseUrl, title,
-										width, height, filename);
-							});
+				if (shouldDownloadAlbum(albumId, albumTitle)) {
+					
+					albumService.addAlbum(albumId,albumTitle);
+					LOGGER.info("Reading album {}...", albumTitle);
+					try {
+						JsonNode albumContent = albumService
+								.albumContent(albumId);
+						JsonNode mediaItemsCon = albumContent
+								.findValue("mediaItems");
+						if (mediaItemsCon.isArray()) {
+							for (JsonNode mcj : mediaItemsCon) {
+								String filename = mcj.findValue("filename")
+										.textValue();
+								JsonNode mediaMetadata = mcj
+										.findParent("mediaMetadata");
+								String width = mediaMetadata.findValue("width")
+										.textValue();
+								String height = mediaMetadata
+										.findValue("height").textValue();
+								final String baseUrl = String.format(
+										"%s=w%s-h%s",
+										mcj.findValue("baseUrl").textValue(),
+										width, height);
+								mediaDownloadExecutor.execute(() -> {
+									LOGGER.info("Download file [{}]...",
+											filename);
+									mediaService.downloadPhoto(baseUrl,
+											albumTitle, width, height,
+											filename);
+								});
+							}
 						}
+					} catch (Exception e) {
+						LOGGER.error("Error when process album [{}]",
+								albumTitle, e);
 					}
-				} catch (Exception e) {
-					LOGGER.error("Error when process album [{}]", title, e);
 				}
 			}
 		}
 
 		return null;
+	}
+
+	private boolean shouldDownloadAlbum(String albumId, String albumTitle) {
+		AlbumStatus status = albumService.albumLocalStatus(albumId);
+		return status == null || status == AlbumStatus.DOWNLOADING
+				? true
+				: false;
 	}
 
 }

@@ -72,8 +72,22 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	@Autowired
 	private AlbumRepository albumRepository;
 	@Override
-	protected JpaRepository<AlbumEntity, Long> getRepository() {
+	protected JpaRepository<AlbumEntity, String> getRepository() {
 		return albumRepository;
 	}
 
+	@Override
+	public AlbumStatus albumLocalStatus(String albumId) {
+		AlbumEntity albumEntity = get(albumId);
+		return albumId == null ? null : albumEntity.getStatus();
+	}
+
+	@Override
+	public void addAlbum(String albumId, String albumTitle) {
+		AlbumEntity en = new AlbumEntity();
+		en.setAlbumId(albumId);
+		en.setTitle(albumTitle);
+		en.setStatus(AlbumStatus.DOWNLOADING.name());
+		put(en);
+	}
 }

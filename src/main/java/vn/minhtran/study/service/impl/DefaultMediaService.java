@@ -48,7 +48,7 @@ public class DefaultMediaService extends AbstractGooglePhoto
 	}
 
 	@Override
-	protected JpaRepository<AlbumEntity, Long> getRepository() {
+	protected JpaRepository<AlbumEntity, String> getRepository() {
 		return null;
 	}
 

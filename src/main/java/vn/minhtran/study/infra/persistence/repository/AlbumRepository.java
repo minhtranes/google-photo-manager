@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 
 @Repository
-public interface AlbumRepository extends JpaRepository<AlbumEntity, Long> {
+public interface AlbumRepository extends JpaRepository<AlbumEntity, String> {
 
 }

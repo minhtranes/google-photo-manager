@@ -4,37 +4,26 @@ import java.io.Serializable;
 
 import javax.persistence.Access;
 import javax.persistence.AccessType;
-import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import vn.minhtran.study.infra.cache.KeyEntity;
+import vn.minhtran.study.service.impl.AlbumStatus;
 
 @Entity
 @Table(name = "albums")
 @Access(AccessType.PROPERTY)
-public class AlbumEntity implements Serializable,KeyEntity<Long> {
+public class AlbumEntity implements Serializable, KeyEntity<String> {
 
 	private static final long serialVersionUID = 440751448351914335L;
 
-	private Long id;
 	private String albumId;
 	private String title;
-	private String status;
-	
+	private AlbumStatus status;
+
 	@Id
-    @Column(name = "id",columnDefinition = "serial")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-	public Long getId() {
-		return id;
-	}
-	public void setId(Long id) {
-		this.id = id;
-	}
 	public String getAlbumId() {
 		return albumId;
 	}
@@ -47,16 +36,16 @@ public class AlbumEntity implements Serializable,KeyEntity<Long> {
 	public void setTitle(String title) {
 		this.title = title;
 	}
-	public String getStatus() {
+	public AlbumStatus getStatus() {
 		return status;
 	}
 	public void setStatus(String status) {
-		this.status = status;
+		this.status = AlbumStatus.valueOf(status);
 	}
-	
+
 	@Transient
 	@Override
-	public Long getKey() {
-		return id;
+	public String getKey() {
+		return albumId;
 	}
 }
