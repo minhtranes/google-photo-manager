@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +29,9 @@ public class AlbumController {
 	@Autowired
 	private MediaService mediaService;
 
+	@Autowired
+	private ThreadPoolTaskExecutor mediaDownloadExecutor;
+
 	@GetMapping("/list")
 	public String listAlbums(Authentication authentication) throws IOException {
 		JsonNode albums = albumService.list();
@@ -46,8 +50,6 @@ public class AlbumController {
 							.findValue("mediaItems");
 					if (mediaItemsCon.isArray()) {
 						for (JsonNode mcj : mediaItemsCon) {
-							String baseUrl = mcj.findValue("baseUrl")
-									.textValue();
 							String filename = mcj.findValue("filename")
 									.textValue();
 							JsonNode mediaMetadata = mcj
@@ -56,11 +58,14 @@ public class AlbumController {
 									.textValue();
 							String height = mediaMetadata.findValue("height")
 									.textValue();
-							baseUrl = String.format("%s=w%s-h%s", baseUrl,
-									width, height);
-							LOGGER.info("Download file [{}]...", filename);
-							mediaService.downloadPhoto(baseUrl, title, width,
-									height, filename);
+							final String baseUrl = String.format("%s=w%s-h%s",
+									mcj.findValue("baseUrl").textValue(), width,
+									height);
+							mediaDownloadExecutor.execute(() -> {
+								LOGGER.info("Download file [{}]...", filename);
+								mediaService.downloadPhoto(baseUrl, title,
+										width, height, filename);
+							});
 						}
 					}
 				} catch (Exception e) {

@@ -13,3 +13,9 @@ spring:
             scope: https://www.googleapis.com/auth/photoslibrary.readonly,openid
 storage:
    directory: /home/storage
+media.download:
+   executor:
+      corePoolSize: 2
+      maxPoolSize: 2
+      threadNamePrefix: media-downloader-
+      threadNamePrefixSet: true
