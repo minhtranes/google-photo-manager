@@ -11,3 +11,5 @@ spring:
             client-id: sampleid
             client-secret: samplesecrete
             scope: https://www.googleapis.com/auth/photoslibrary.readonly,openid
+storage:
+   directory: /home/storage
