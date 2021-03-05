@@ -44,48 +44,45 @@ public class AlbumController {
 				JsonNode albumTitleNode = al.findValue("title");
 				String albumTitle = albumTitleNode.textValue();
 
-				if (shouldDownloadAlbum(albumId, albumTitle)) {
-
-					LOGGER.info("Reading album {}...", albumTitle);
-					try {
-						JsonNode albumContent = albumService
-								.albumContent(albumId);
-						JsonNode mediaItemsCon = albumContent
-								.findValue("mediaItems");
-						if (mediaItemsCon.isArray()) {
-							int size = mediaItemsCon.size();
-							albumService.addAlbum(albumId, albumTitle, size);
-							for (JsonNode mcj : mediaItemsCon) {
-								String filename = mcj.findValue("filename")
-										.textValue();
-								JsonNode mediaMetadata = mcj
-										.findParent("mediaMetadata");
-								String width = mediaMetadata.findValue("width")
-										.textValue();
-								String height = mediaMetadata
-										.findValue("height").textValue();
-								final String baseUrl = String.format(
-										"%s=w%s-h%s",
-										mcj.findValue("baseUrl").textValue(),
-										width, height);
-								mediaDownloadExecutor.execute(() -> {
-									LOGGER.info("Download file [{}]...",
-											filename);
-									mediaService.downloadPhoto(baseUrl,
-											albumId, width, height,
-											filename);
-								});
-							}
-						}
-					} catch (Exception e) {
-						LOGGER.error("Error when process album [{}]",
-								albumTitle, e);
-					}
-				}
+				downloadAlbum(albumId, albumTitle);
 			}
 		}
 
 		return null;
+	}
+
+	private void downloadAlbum(String albumId, String albumTitle) {
+		if (shouldDownloadAlbum(albumId, albumTitle)) {
+
+			LOGGER.info("Reading album {}...", albumTitle);
+			try {
+				JsonNode albumContent = albumService.albumContent(albumId);
+				JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
+				if (mediaItemsCon.isArray()) {
+					int size = mediaItemsCon.size();
+					albumService.addAlbum(albumId, albumTitle, size);
+					for (JsonNode mcj : mediaItemsCon) {
+						String filename = mcj.findValue("filename").textValue();
+						JsonNode mediaMetadata = mcj
+								.findParent("mediaMetadata");
+						String width = mediaMetadata.findValue("width")
+								.textValue();
+						String height = mediaMetadata.findValue("height")
+								.textValue();
+						final String baseUrl = String.format("%s=w%s-h%s",
+								mcj.findValue("baseUrl").textValue(), width,
+								height);
+						mediaDownloadExecutor.execute(() -> {
+							LOGGER.info("Download file [{}]...", filename);
+							mediaService.downloadPhoto(baseUrl, albumId, width,
+									height, filename);
+						});
+					}
+				}
+			} catch (Exception e) {
+				LOGGER.error("Error when process album [{}]", albumTitle, e);
+			}
+		}
 	}
 
 	private boolean shouldDownloadAlbum(String albumId, String albumTitle) {
