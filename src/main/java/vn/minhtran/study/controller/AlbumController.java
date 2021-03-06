@@ -44,7 +44,7 @@ public class AlbumController {
 		if (albumsCon.isArray()) {
 			int count = 0;
 			for (JsonNode al : albumsCon) {
-				while (count < limit) {
+				while (limit < 0 || count < limit) {
 					count++;
 					JsonNode idValueNode = al.findValue("id");
 					String albumId = idValueNode.textValue();
