@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,22 +35,36 @@ public class AlbumController {
 	@Autowired
 	private ThreadPoolTaskExecutor mediaDownloadExecutor;
 
-	@GetMapping("/list")
-	public String listAlbums(Authentication authentication) throws IOException {
+	@PostMapping("/download")
+	public String downloadAlbums(Authentication authentication,
+			@RequestParam(name = "limit", required = false, defaultValue = "-1") int limit)
+			throws IOException {
 		JsonNode albums = albumService.list();
 		JsonNode albumsCon = albums.findValue("albums");
 		if (albumsCon.isArray()) {
+			int count = 0;
 			for (JsonNode al : albumsCon) {
-				JsonNode idValueNode = al.findValue("id");
-				String albumId = idValueNode.textValue();
-				JsonNode albumTitleNode = al.findValue("title");
-				String albumTitle = albumTitleNode.textValue();
+				while (count < limit) {
+					count++;
+					JsonNode idValueNode = al.findValue("id");
+					String albumId = idValueNode.textValue();
+					JsonNode albumTitleNode = al.findValue("title");
+					String albumTitle = albumTitleNode.textValue();
 
-				downloadAlbum(albumId, albumTitle);
+					downloadAlbum(albumId, albumTitle);
+
+				}
 			}
 		}
 
 		return null;
+	}
+
+	@GetMapping("/list")
+	public String listAlbums(Authentication authentication) throws IOException {
+		JsonNode albums = albumService.list();
+		JsonNode albumsCon = albums.findValue("albums");
+		return albumsCon != null ? albumsCon.toPrettyString() : null;
 	}
 
 	private void downloadAlbum(String albumId, String albumTitle) {
