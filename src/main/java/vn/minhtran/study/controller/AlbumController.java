@@ -61,10 +61,9 @@ public class AlbumController {
 	}
 
 	@GetMapping("/list")
-	public String listAlbums(Authentication authentication) throws IOException {
-		JsonNode albums = albumService.list();
-		JsonNode albumsCon = albums.findValue("albums");
-		return albumsCon != null ? albumsCon.toPrettyString() : null;
+	public JsonNode listAlbums(Authentication authentication)
+			throws IOException {
+		return albumService.list();
 	}
 
 	private void downloadAlbum(String albumId, String albumTitle) {
