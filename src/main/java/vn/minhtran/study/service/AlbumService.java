@@ -17,4 +17,5 @@ public interface AlbumService {
 	int getAlbumSize(String albumId);
 
 	void downloadComplete(String albumId);
+
 }

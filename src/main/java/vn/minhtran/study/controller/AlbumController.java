@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,7 +34,7 @@ public class AlbumController {
 	@Autowired
 	private ThreadPoolTaskExecutor mediaDownloadExecutor;
 
-	@PostMapping("/download")
+	@GetMapping("/download")
 	public String downloadAlbums(Authentication authentication,
 			@RequestParam(name = "limit", required = false, defaultValue = "-1") int limit)
 			throws IOException {
@@ -63,6 +62,7 @@ public class AlbumController {
 	@GetMapping("/list")
 	public JsonNode listAlbums(Authentication authentication)
 			throws IOException {
+		LOGGER.info("Listing....");
 		return albumService.list();
 	}
 

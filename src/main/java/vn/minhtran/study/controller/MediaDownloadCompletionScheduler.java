@@ -3,6 +3,7 @@ package vn.minhtran.study.controller;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import vn.minhtran.study.infra.config.LocalStorageProperties;
 import vn.minhtran.study.service.AlbumService;
+import vn.minhtran.study.service.impl.AlbumStatus;
 
 @Component
 public class MediaDownloadCompletionScheduler {
@@ -37,23 +39,40 @@ public class MediaDownloadCompletionScheduler {
 		for (File dir : listFiles) {
 			if (dir.isDirectory() && !archiveDir.equals(dir)) {
 				File[] images = dir.listFiles();
+				String albumId = dir.getName();
+				int albumSize = albumService.getAlbumSize(albumId);
 				if (images.length > 0) {
-					String albumId = dir.getName();
-					int albumSize = albumService.getAlbumSize(albumId);
-					if (images.length == albumSize) {
+					if (images.length >= albumSize) {
 						LOGGER.info("Album {} download completed", albumId);
 						albumService.downloadComplete(albumId);
-						try {
-							Files.move(dir.toPath(),
-									archiveDir.toPath().resolve(albumId),
-									StandardCopyOption.REPLACE_EXISTING);
-						} catch (IOException e) {
-							LOGGER.error("Failed to move dir from [{}] to [{}]",
-									dir.toString(), archiveDir.toString(), e);
+						for (File f : dir.listFiles()) {
+							try {
+								Path tarDir = archiveDir.toPath()
+										.resolve(albumId);
+								if (!tarDir.toFile().exists()) {
+									tarDir.toFile().mkdirs();
+								}
+								Files.move(f.toPath(),
+										tarDir.resolve(f.getName()),
+										StandardCopyOption.REPLACE_EXISTING);
+							} catch (IOException e) {
+								LOGGER.error(
+										"Failed to move dir from [{}] to [{}]",
+										dir.toString(), archiveDir.toString(),
+										e);
+							}
 						}
+
 					}
 				}
+				if (AlbumStatus.DOWNLOAD_COMPLETED == albumService
+						.albumLocalStatus(albumId)
+						&& (dir.listFiles() == null
+								|| dir.listFiles().length == 0)) {
+					dir.delete();
+				}
 			}
+
 		}
 	}
 }
