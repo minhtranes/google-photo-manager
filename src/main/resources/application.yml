@@ -3,9 +3,9 @@ spring:
       oauth2:
          client:
             provider:
-              google:
-                 authorization-uri: https://accounts.google.com/o/oauth2/auth
-                 token-uri: https://oauth2.googleapis.com/token
+               google:
+                  authorization-uri: https://accounts.google.com/o/oauth2/auth
+                  token-uri: https://oauth2.googleapis.com/token
             registration:
                google:
                   client-id: sampleid
@@ -15,12 +15,13 @@ spring:
       url: jdbc:h2:file:./googlephotos
       driverClassName: org.h2.Driver
       username: sa
-      password: 
+      password: null
       platform: h2
+      continue-on-error: true
    jpa:
       database-platform: org.hibernate.dialect.H2Dialect
       generate-ddl: true
-      hibernate.ddl-auto: update
+      hibernate.ddl-auto: none
    h2.console:
       enabled: true
       path: /data
@@ -33,5 +34,12 @@ media.download:
       maxPoolSize: 2
       threadNamePrefix: media-downloader-
       threadNamePrefixSet: true
-   completion.scheduler:
-      
+   completion.scheduler: null
+management:
+    endpoints:
+       enabled-by-default: true
+       web.exposure.include: '*'
+    endpoint:
+       beans.enabled: true
+       shutdown.enabled: true
+    

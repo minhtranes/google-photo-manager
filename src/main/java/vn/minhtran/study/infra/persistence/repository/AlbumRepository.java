@@ -1,11 +1,13 @@
 package vn.minhtran.study.infra.persistence.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.socialsignin.spring.data.dynamodb.repository.DynamoDBCrudRepository;
+import org.socialsignin.spring.data.dynamodb.repository.EnableScan;
 
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 
-@Repository
-public interface AlbumRepository extends JpaRepository<AlbumEntity, String> {
+@EnableScan
+public interface AlbumRepository
+		extends
+			DynamoDBCrudRepository<AlbumEntity, String> {
 
 }

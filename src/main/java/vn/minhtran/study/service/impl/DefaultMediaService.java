@@ -2,11 +2,12 @@ package vn.minhtran.study.service.impl;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
@@ -41,14 +42,17 @@ public class DefaultMediaService extends AbstractGooglePhoto
 					if (!ret.exists()) {
 						ret.createNewFile();
 					}
-					StreamUtils.copy(clientHttpResponse.getBody(),
-							new FileOutputStream(ret));
+					try (InputStream is = clientHttpResponse.getBody()) {
+						try (FileOutputStream os = new FileOutputStream(ret)) {
+							StreamUtils.copy(is, os);
+						}
+					}
 					return ret;
 				});
 	}
 
 	@Override
-	protected JpaRepository<AlbumEntity, String> getRepository() {
+	protected CrudRepository<AlbumEntity, String> getRepository() {
 		return null;
 	}
 

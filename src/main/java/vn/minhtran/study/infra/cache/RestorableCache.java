@@ -1,13 +1,12 @@
 package vn.minhtran.study.infra.cache;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.CrudRepository;
 
 public abstract class RestorableCache<K extends Serializable, V extends KeyEntity<K>> {
 
@@ -25,14 +24,17 @@ public abstract class RestorableCache<K extends Serializable, V extends KeyEntit
 		return store.containsKey(key);
 	}
 
-	protected abstract JpaRepository<V, K> getRepository();
+	protected abstract CrudRepository<V, K> getRepository();
 	private Executor executor = Executors.newFixedThreadPool(1);
 
 	protected void restore() {
-		List<V> all = getRepository().findAll();
+		try {
+		Iterable<V> all = getRepository().findAll();
 		all.forEach(s -> {
 			store.put(s.getKey(), s);
 		});
+		}catch (Exception e) {
+		}
 	}
 
 	protected V get(K key) {
