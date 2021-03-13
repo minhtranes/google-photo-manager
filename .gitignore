@@ -34,3 +34,4 @@ build/
 src/main/resources/config/application.yml
 *.db
 *.mv.db
+/logs/
