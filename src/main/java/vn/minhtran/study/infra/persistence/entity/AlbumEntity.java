@@ -2,6 +2,10 @@ package vn.minhtran.study.infra.persistence.entity;
 
 import java.io.Serializable;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Transient;
+
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.AccessType.Type;
 
@@ -13,6 +17,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTyped;
 
 import vn.minhtran.study.infra.cache.KeyEntity;
 
+@Entity
 @DynamoDBTable(tableName = "google_photo_albums")
 @AccessType(Type.PROPERTY)
 public class AlbumEntity implements Serializable, KeyEntity<String> {
@@ -32,6 +37,7 @@ public class AlbumEntity implements Serializable, KeyEntity<String> {
 		this.numOfImage = numOfImage;
 	}
 
+	@Id
 	@DynamoDBHashKey
 	@DynamoDBTyped(DynamoDBAttributeType.S)
 	public String getAlbumId() {
@@ -57,6 +63,7 @@ public class AlbumEntity implements Serializable, KeyEntity<String> {
 		this.status = status;
 	}
 
+	@Transient
 	@Override
 	public String getKey() {
 		return albumId;
