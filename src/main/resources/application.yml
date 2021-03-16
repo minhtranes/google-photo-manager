@@ -10,7 +10,7 @@ spring:
                google:
                   client-id: sampleid
                   client-secret: samplesecrete
-                  scope: https://www.googleapis.com/auth/photoslibrary.readonly
+                  scope: https://www.googleapis.com/auth/photoslibrary.readonly,https://www.googleapis.com/auth/photoslibrary,openid,profile,email
    datasource:
       url: jdbc:h2:file:./googlephotos
       driverClassName: org.h2.Driver
