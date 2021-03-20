@@ -45,8 +45,9 @@ public class DefaultMediaService extends AbstractGooglePhoto
 
 	@PostConstruct
 	void init() {
+
+		final String bucket = osProperties.getBucket();
 		try {
-			final String bucket = osProperties.getBucket();
 			boolean bucketExists = minioClient.bucketExists(
 			        BucketExistsArgs.builder().bucket(bucket).build());
 			if (!bucketExists) {
@@ -54,7 +55,7 @@ public class DefaultMediaService extends AbstractGooglePhoto
 				        MakeBucketArgs.builder().bucket(bucket).build());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to create bucket [{}]", bucket, e);
 		}
 	}
 
