@@ -42,4 +42,4 @@ management:
     endpoint:
        beans.enabled: true
        shutdown.enabled: true
-    
+cloud.aws.region.static: us-east-1
