@@ -39,13 +39,13 @@ import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
 @Configuration
 @Profile("dynamodb")
 @EnableJpaRepositories(excludeFilters = @Filter(type = FilterType.ASSIGNABLE_TYPE, value = AlbumRepository.class))
-@EnableDynamoDBRepositories(basePackageClasses = {AlbumRepository.class})
+@EnableDynamoDBRepositories(basePackageClasses = { AlbumRepository.class })
 public class DynamoDBDataSourceConfiguration {
 
 	@Bean
 	@ConfigurationProperties(prefix = "amazon.aws")
-	AwsProperties awsProperties() {
-		return new AwsProperties();
+	ObjectStorageProperties awsProperties() {
+		return new ObjectStorageProperties();
 	}
 
 	@Bean
@@ -58,42 +58,30 @@ public class DynamoDBDataSourceConfiguration {
 		return new AWSStaticCredentialsProvider(amazonAWSCredentials());
 	}
 
-	// @Bean
-	// @Primary
-	// public DynamoDBMapperConfig dynamoDBMapperConfig() {
-	// return DynamoDBMapperConfig.DEFAULT;
-	// }
-	//
-	// @Bean
-	// public DynamoDBMapper dynamoDBMapper(AmazonDynamoDB amazonDynamoDB,
-	// DynamoDBMapperConfig config) {
-	// return new DynamoDBMapper(amazonDynamoDB, config);
-	// }
-
 	@Bean
 	public AmazonDynamoDB amazonDynamoDB() {
 		return AmazonDynamoDBClientBuilder.standard()
-				.withCredentials(amazonAWSCredentialsProvider())
-				.withRegion(Regions.AP_NORTHEAST_1).build();
+		        .withCredentials(amazonAWSCredentialsProvider())
+		        .withRegion(Regions.AP_NORTHEAST_1).build();
 	}
 
 	@Bean
 	public AWSCredentials amazonAWSCredentials() {
 		return new BasicAWSCredentials(awsProperties().getAccesskey(),
-				awsProperties().getSecretkey());
+		        awsProperties().getSecretkey());
 	}
 
 	@Bean
 	Object initDynamo(
-			@Value("${spring.datasource.continue-on-error:false}") boolean continueOnError) {
+	        @Value("${spring.datasource.continue-on-error:false}") boolean continueOnError) {
 
 		try {
 			final DynamoDBMapper dynamoDBMapper = new DynamoDBMapper(
-					amazonDynamoDB());
+			        amazonDynamoDB());
 			final CreateTableRequest tableRequest = dynamoDBMapper
-					.generateCreateTableRequest(AlbumEntity.class);
+			        .generateCreateTableRequest(AlbumEntity.class);
 			tableRequest.setProvisionedThroughput(
-					new ProvisionedThroughput(1L, 1L));
+			        new ProvisionedThroughput(1L, 1L));
 			amazonDynamoDB().createTable(tableRequest);
 		} catch (Exception e) {
 			if (!continueOnError) {
