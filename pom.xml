@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>vn.minhtran.study</groupId>
 	<artifactId>google-photo-manager</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<name>google-photo-manager</name>
 	<description>Simple to manage google photos</description>
 
