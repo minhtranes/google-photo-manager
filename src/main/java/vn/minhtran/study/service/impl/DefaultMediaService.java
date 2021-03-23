@@ -60,8 +60,8 @@ public class DefaultMediaService extends AbstractGooglePhoto
 	}
 
 	@Override
-	public void downloadPhoto(String baseUrl, String albumName, String width,
-	        String height, String filename) {
+	public void downloadPhoto(String baseUrl, String albumName,
+	        String albumTitle, String width, String height, String filename) {
 
 		restTemplate.execute(baseUrl, HttpMethod.GET, null, res -> {
 			Path path = Paths.get(storageProperties.getDirectory(), albumName,
@@ -77,7 +77,8 @@ public class DefaultMediaService extends AbstractGooglePhoto
 			try (InputStream is = res.getBody()) {
 				try {
 					minioClient.putObject(PutObjectArgs.builder()
-					        .bucket(osProperties.getBucket()).object(filename)
+					        .bucket(osProperties.getBucket())
+					        .object(String.join("/", albumName, filename))
 					        .stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
 					        .contentType("image/jpg").build());
 				} catch (Exception e) {

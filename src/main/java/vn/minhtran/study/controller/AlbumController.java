@@ -23,7 +23,7 @@ import vn.minhtran.study.service.impl.AlbumStatus;
 public class AlbumController {
 
 	private static Logger LOGGER = LoggerFactory
-			.getLogger(AlbumController.class);
+	        .getLogger(AlbumController.class);
 
 	@Autowired
 	private AlbumService albumService;
@@ -36,8 +36,8 @@ public class AlbumController {
 
 	@GetMapping("/download")
 	public String downloadAlbums(Authentication authentication,
-			@RequestParam(name = "limit", required = false, defaultValue = "-1") int limit)
-			throws IOException {
+	        @RequestParam(name = "limit", required = false, defaultValue = "-1") int limit)
+	        throws IOException {
 		JsonNode albums = albumService.list();
 		JsonNode albumsCon = albums.findValue("albums");
 		if (albumsCon.isArray()) {
@@ -61,7 +61,7 @@ public class AlbumController {
 
 	@GetMapping("/list")
 	public JsonNode listAlbums(Authentication authentication)
-			throws IOException {
+	        throws IOException {
 		LOGGER.info("Listing....");
 		return albumService.list();
 	}
@@ -79,18 +79,18 @@ public class AlbumController {
 					for (JsonNode mcj : mediaItemsCon) {
 						String filename = mcj.findValue("filename").textValue();
 						JsonNode mediaMetadata = mcj
-								.findParent("mediaMetadata");
+						        .findParent("mediaMetadata");
 						String width = mediaMetadata.findValue("width")
-								.textValue();
+						        .textValue();
 						String height = mediaMetadata.findValue("height")
-								.textValue();
+						        .textValue();
 						final String baseUrl = String.format("%s=w%s-h%s",
-								mcj.findValue("baseUrl").textValue(), width,
-								height);
+						        mcj.findValue("baseUrl").textValue(), width,
+						        height);
 						mediaDownloadExecutor.execute(() -> {
 							LOGGER.info("Download file [{}]...", filename);
-							mediaService.downloadPhoto(baseUrl, albumId, width,
-									height, filename);
+							mediaService.downloadPhoto(baseUrl, albumId,
+							        albumTitle, width, height, filename);
 						});
 					}
 				}
@@ -102,9 +102,8 @@ public class AlbumController {
 
 	private boolean shouldDownloadAlbum(String albumId, String albumTitle) {
 		AlbumStatus status = albumService.albumLocalStatus(albumId);
-		return status == null || status == AlbumStatus.DOWNLOADING
-				? true
-				: false;
+		return status == null || status == AlbumStatus.DOWNLOADING ? true
+		        : false;
 	}
 
 }
