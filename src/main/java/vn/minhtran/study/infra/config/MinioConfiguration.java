@@ -13,13 +13,13 @@ public class MinioConfiguration {
 
 	@Bean
 	@ConfigurationProperties(prefix = "storage.os")
-	ObjectStorageProperties osS3Credential() {
+	ObjectStorageProperties osProperties() {
 		return new ObjectStorageProperties();
 	}
 
 	@Bean
 	MinioClient minioClient() {
-		ObjectStorageProperties credential = osS3Credential();
+		ObjectStorageProperties credential = osProperties();
 		return MinioClient
 				.builder()
 				.endpoint(credential.getEndpoint())
