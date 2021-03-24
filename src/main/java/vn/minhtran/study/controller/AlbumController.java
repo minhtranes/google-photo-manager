@@ -38,20 +38,25 @@ public class AlbumController {
 	public String downloadAlbums(Authentication authentication,
 	        @RequestParam(name = "limit", required = false, defaultValue = "-1") int limit)
 	        throws IOException {
+		if (limit == 0) {
+			return null;
+		}
 		JsonNode albums = albumService.list();
 		JsonNode albumsCon = albums.findValue("albums");
 		if (albumsCon.isArray()) {
 			int count = 0;
 			for (JsonNode al : albumsCon) {
-				while (limit < 0 || count < limit) {
-					count++;
-					JsonNode idValueNode = al.findValue("id");
+				JsonNode idValueNode = al.findValue("id");
+				if (idValueNode != null && !idValueNode.isEmpty()) {
 					String albumId = idValueNode.textValue();
 					JsonNode albumTitleNode = al.findValue("title");
 					String albumTitle = albumTitleNode.textValue();
 
 					downloadAlbum(albumId, albumTitle);
-
+				}
+				count++;
+				if (limit > 0 && count >= limit) {
+					break;
 				}
 			}
 		}
