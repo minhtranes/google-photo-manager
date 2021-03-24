@@ -47,7 +47,7 @@ public class AlbumController {
 			int count = 0;
 			for (JsonNode al : albumsCon) {
 				JsonNode idValueNode = al.findValue("id");
-				if (idValueNode != null && !idValueNode.isEmpty()) {
+				if (idValueNode != null) {
 					String albumId = idValueNode.textValue();
 					JsonNode albumTitleNode = al.findValue("title");
 					String albumTitle = albumTitleNode.textValue();
