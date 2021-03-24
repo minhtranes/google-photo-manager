@@ -4,6 +4,8 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.http.HttpEntity;
@@ -16,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
@@ -24,8 +27,7 @@ import vn.minhtran.study.service.AlbumService;
 
 @Service
 public class DefaultAlbumService extends AbstractGooglePhoto
-		implements
-			AlbumService {
+        implements AlbumService {
 
 	private RestTemplate restTemplate = new RestTemplate();
 
@@ -35,8 +37,8 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		headers.setBearerAuth(accessToken());
 		HttpEntity<Map<String, String>> entity = new HttpEntity<>(headers);
 		ResponseEntity<JsonNode> exchange = restTemplate.exchange(
-				"https://photoslibrary.googleapis.com/v1/albums",
-				HttpMethod.GET, entity, JsonNode.class);
+		        "https://photoslibrary.googleapis.com/v1/albums",
+		        HttpMethod.GET, entity, JsonNode.class);
 		if (exchange.getStatusCode() == HttpStatus.OK) {
 			JsonNode body = exchange.getBody();
 			return body;
@@ -45,34 +47,85 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		return null;
 	}
 
+	private static final Logger LOGGER = LoggerFactory
+	        .getLogger(DefaultAlbumService.class);
 	private ObjectMapper mapper = new ObjectMapper();
 
 	@Override
 	public JsonNode albumContent(String albumId) throws Exception {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(accessToken());
-		JsonNode bo = mapper.readTree(
-				"{\"pageSize\": \"100\",\"albumId\":\"" + albumId + "\"}");
 
-		HttpEntity<String> entity = new HttpEntity<>(bo.toString(), headers);
-		ResponseEntity<JsonNode> exchange = restTemplate.exchange(
-				"https://photoslibrary.googleapis.com/v1/mediaItems:search",
-				HttpMethod.POST, entity, JsonNode.class);
-		if (exchange.getStatusCode() == HttpStatus.OK) {
-			JsonNode body = exchange.getBody();
-			return body;
+		String bodyWithoutPage = mapper.readTree(
+		        "{\"pageSize\": \"25\",\"albumId\":\"" + albumId + "\"}")
+		        .toString();
+		final String searchURL = "https://photoslibrary.googleapis.com/v1/mediaItems:search";
+
+		String bodyWithPage = null;
+		JsonNode ret = null;
+
+		boolean hasNext = false;
+		String nextPageToken = null;
+		do {
+			HttpEntity<String> entity = new HttpEntity<>(
+			        hasNext ? bodyWithPage : bodyWithoutPage, headers);
+			LOGGER.info("List album media from [{}] with page token [{}]",
+			        searchURL, nextPageToken);
+			ResponseEntity<JsonNode> exchange = restTemplate.exchange(searchURL,
+			        HttpMethod.POST, entity, JsonNode.class);
+			if (exchange.getStatusCode() == HttpStatus.OK) {
+				JsonNode body = exchange.getBody();
+				if ((nextPageToken = hasNextPageToken(body)) != null) {
+					mergeResult(ret, body);
+					hasNext = true;
+					bodyWithPage = mapper
+					        .readTree("{\"pageSize\": \"25\",\"albumId\":\""
+					                + albumId + "\",\"pageToken\":\""
+					                + nextPageToken + "\"}")
+					        .toString();
+				} else {
+					ret = body;
+					hasNext = false;
+					bodyWithPage = null;
+				}
+			}
+		} while (hasNext);
+
+		return ret;
+	}
+
+	private void mergeResult(JsonNode ret, JsonNode body) {
+		if (ret == null) {
+			ret = body;
+		} else {
+			try {
+				JsonNode mediaItems = ret.findParent("mediaItems");
+				JsonNode addedMediaItems = body.findParent("mediaItems");
+				if (mediaItems.isArray()) {
+					((ArrayNode) mediaItems).add(addedMediaItems);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
+	}
 
-		return null;
+	private String hasNextPageToken(JsonNode body) {
+		if (body == null) {
+			return null;
+		}
+		JsonNode nextPageNode = body.findValue("nextPageToken");
+		return nextPageNode == null ? null : nextPageNode.textValue();
 	}
 
 	@PostConstruct
 	void init() {
 		restore();
 	}
-	
+
 	@Autowired
 	private AlbumRepository albumRepository;
+
 	@Override
 	protected CrudRepository<AlbumEntity, String> getRepository() {
 		return albumRepository;
@@ -81,9 +134,8 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	@Override
 	public AlbumStatus albumLocalStatus(String albumId) {
 		AlbumEntity albumEntity = get(albumId);
-		return albumEntity == null
-				? null
-				: AlbumStatus.valueOf(albumEntity.getStatus());
+		return albumEntity == null ? null
+		        : AlbumStatus.valueOf(albumEntity.getStatus());
 	}
 
 	@Override
@@ -95,6 +147,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		en.setNumOfImage(size);
 		put(en);
 	}
+
 	@Override
 	public int getAlbumSize(String albumId) {
 		AlbumEntity albumEntity = get(albumId);
