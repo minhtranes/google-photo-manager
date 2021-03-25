@@ -91,22 +91,26 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 			}
 		} while (hasNext);
 
+		System.out.println(ret == null ? "NO IMAGE" : ret.toString());
+
 		return ret;
 	}
 
 	private void mergeResult(JsonNode ret, JsonNode body) {
 		if (ret == null) {
 			ret = body;
-		} else {
-			try {
-				JsonNode mediaItems = ret.findParent("mediaItems");
-				JsonNode addedMediaItems = body.findParent("mediaItems");
-				if (mediaItems.isArray()) {
-					((ArrayNode) mediaItems).add(addedMediaItems);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
+			return;
+		}
+		try {
+			JsonNode mediaItems = ret.findValue("mediaItems");
+			JsonNode addedMediaItems = body.findValue("mediaItems");
+			if (mediaItems.isArray()) {
+				((ArrayNode) mediaItems).add(addedMediaItems);
 			}
+		} catch (Exception e) {
+			LOGGER.error(
+			        "Failed to merge result from a page to the total result",
+			        e);
 		}
 	}
 
