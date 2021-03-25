@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +21,7 @@ import vn.minhtran.study.service.impl.AlbumStatus;
 public class MediaDownloadCompletionScheduler {
 
 	private static Logger LOGGER = LoggerFactory
-			.getLogger(MediaDownloadCompletionScheduler.class);
+	        .getLogger(MediaDownloadCompletionScheduler.class);
 
 	@Autowired
 	private AlbumService albumService;
@@ -28,8 +29,15 @@ public class MediaDownloadCompletionScheduler {
 	@Autowired
 	private LocalStorageProperties storageProperties;
 
-	@Scheduled(fixedDelayString = "5000")
+	@Value("${media.completion.cleanup.scheduler.enabled}")
+	private boolean enabled;
+
+	@Scheduled(cron = "${media.completion.cleanup.scheduler.cron}")
 	public void check() {
+		if (!enabled) {
+			LOGGER.info("Cleanup scheduler was disabled!");
+			return;
+		}
 		File directory = new File(storageProperties.getDirectory());
 		File[] listFiles = directory.listFiles();
 		File archiveDir = new File(storageProperties.getArchiveDirectory());
@@ -48,27 +56,27 @@ public class MediaDownloadCompletionScheduler {
 						for (File f : dir.listFiles()) {
 							try {
 								Path tarDir = archiveDir.toPath()
-										.resolve(albumId);
+								        .resolve(albumId);
 								if (!tarDir.toFile().exists()) {
 									tarDir.toFile().mkdirs();
 								}
 								Files.move(f.toPath(),
-										tarDir.resolve(f.getName()),
-										StandardCopyOption.REPLACE_EXISTING);
+								        tarDir.resolve(f.getName()),
+								        StandardCopyOption.REPLACE_EXISTING);
 							} catch (IOException e) {
 								LOGGER.error(
-										"Failed to move dir from [{}] to [{}]",
-										dir.toString(), archiveDir.toString(),
-										e);
+								        "Failed to move dir from [{}] to [{}]",
+								        dir.toString(), archiveDir.toString(),
+								        e);
 							}
 						}
 
 					}
 				}
 				if (AlbumStatus.DOWNLOAD_COMPLETED == albumService
-						.albumLocalStatus(albumId)
-						&& (dir.listFiles() == null
-								|| dir.listFiles().length == 0)) {
+				        .albumLocalStatus(albumId)
+				        && (dir.listFiles() == null
+				                || dir.listFiles().length == 0)) {
 					dir.delete();
 				}
 			}
