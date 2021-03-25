@@ -1,9 +1,6 @@
 package vn.minhtran.study.service.impl;
 
-import java.io.File;
 import java.io.InputStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import javax.annotation.PostConstruct;
 
@@ -20,7 +17,6 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteArgs;
 import io.minio.PutObjectArgs;
-import vn.minhtran.study.infra.config.LocalStorageProperties;
 import vn.minhtran.study.infra.config.ObjectStorageProperties;
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 import vn.minhtran.study.service.MediaService;
@@ -30,9 +26,6 @@ public class DefaultMediaService extends AbstractGooglePhoto
         implements MediaService {
 
 	private RestTemplate restTemplate = new RestTemplate();
-
-	@Autowired
-	private LocalStorageProperties storageProperties;
 
 	@Autowired
 	private ObjectStorageProperties osProperties;
@@ -64,21 +57,11 @@ public class DefaultMediaService extends AbstractGooglePhoto
 	        String albumTitle, String width, String height, String filename) {
 
 		restTemplate.execute(baseUrl, HttpMethod.GET, null, res -> {
-			Path path = Paths.get(storageProperties.getDirectory(), albumName,
-			        filename);
-			File ret = path.toFile();
-			if (!ret.getParentFile().exists()) {
-				ret.getParentFile().mkdirs();
-			}
-			if (!ret.exists()) {
-				ret.createNewFile();
-			}
-
+			String file = String.join("/", albumName, filename);
 			try (InputStream is = res.getBody()) {
 				try {
 					minioClient.putObject(PutObjectArgs.builder()
-					        .bucket(osProperties.getBucket())
-					        .object(String.join("/", albumName, filename))
+					        .bucket(osProperties.getBucket()).object(file)
 					        .stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
 					        .contentType("image/jpg").build());
 				} catch (Exception e) {
@@ -86,7 +69,7 @@ public class DefaultMediaService extends AbstractGooglePhoto
 					        e);
 				}
 			}
-			return ret;
+			return file;
 		});
 	}
 

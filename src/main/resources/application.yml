@@ -28,13 +28,16 @@ spring:
 storage:
    directory: /home/storage
    archiveDirectory: /home/storage/archive
-media.download:
-   executor:
-      corePoolSize: 2
-      maxPoolSize: 2
-      threadNamePrefix: media-downloader-
-      threadNamePrefixSet: true
-   completion.scheduler: null
+media:
+   download:
+      executor:
+         corePoolSize: 2
+         maxPoolSize: 2
+         threadNamePrefix: media-downloader-
+         threadNamePrefixSet: true
+   completion.cleanup.scheduler:
+      cron: '0/5 * * * * MON-FRI'
+      enabled: false
 management:
     endpoints:
        enabled-by-default: true
