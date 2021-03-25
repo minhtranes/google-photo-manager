@@ -32,7 +32,7 @@ media:
    download:
       executor:
          corePoolSize: 2
-         maxPoolSize: 2
+         maxPoolSize: 15
          threadNamePrefix: media-downloader-
          threadNamePrefixSet: true
    completion.cleanup.scheduler:
