@@ -17,7 +17,6 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteArgs;
 import io.minio.PutObjectArgs;
-import vn.minhtran.study.infra.config.LocalStorageProperties;
 import vn.minhtran.study.infra.config.ObjectStorageProperties;
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 import vn.minhtran.study.service.MediaService;
@@ -27,9 +26,6 @@ public class DefaultMediaService extends AbstractGooglePhoto
         implements MediaService {
 
 	private RestTemplate restTemplate = new RestTemplate();
-
-	@Autowired
-	private LocalStorageProperties storageProperties;
 
 	@Autowired
 	private ObjectStorageProperties osProperties;
