@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +34,15 @@ public class MediaDownloadCompletionScheduler {
 	@Value("${media.completion.cleanup.scheduler.enabled}")
 	private boolean enabled;
 
+	@PostConstruct
+	void init() {
+		LOGGER.info("Cleanup scheduler was set enabled = {}", enabled);
+	}
+
 	@Scheduled(cron = "${media.completion.cleanup.scheduler.cron}")
 	public void check() {
 		if (!enabled) {
-			LOGGER.info("Cleanup scheduler was disabled!");
+			LOGGER.debug("Cleanup scheduler was disabled!");
 			return;
 		}
 		File directory = new File(storageProperties.getDirectory());

@@ -82,6 +82,7 @@ public class AlbumController {
 				JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
 				if (mediaItemsCon.isArray()) {
 					int size = mediaItemsCon.size();
+					LOGGER.info("Album [{}] has {} media", albumId, size);
 					albumService.addAlbum(albumId, albumTitle, size);
 					for (JsonNode mcj : mediaItemsCon) {
 						String filename = mcj.findValue("filename").textValue();

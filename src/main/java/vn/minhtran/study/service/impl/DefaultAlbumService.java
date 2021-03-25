@@ -71,8 +71,6 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		do {
 			HttpEntity<String> entity = new HttpEntity<>(
 			        hasNext ? bodyWithPage : bodyWithoutPage, headers);
-			LOGGER.info("List album media from [{}] with page token [{}]",
-			        searchURL, nextPageToken);
 			ResponseEntity<JsonNode> exchange = restTemplate.exchange(searchURL,
 			        HttpMethod.POST, entity, JsonNode.class);
 			if (exchange.getStatusCode() == HttpStatus.OK) {
