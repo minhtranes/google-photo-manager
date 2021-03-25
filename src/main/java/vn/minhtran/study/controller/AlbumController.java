@@ -36,7 +36,8 @@ public class AlbumController {
 
 	@GetMapping("/download")
 	public String downloadAlbums(Authentication authentication,
-	        @RequestParam(name = "limit", required = false, defaultValue = "-1") int limit)
+	        @RequestParam(name = "limit", required = false, defaultValue = "-1") int limit,
+	        @RequestParam(name = "forced", required = false, defaultValue = "false") boolean forced)
 	        throws IOException {
 		if (limit == 0) {
 			return null;
@@ -52,7 +53,7 @@ public class AlbumController {
 					JsonNode albumTitleNode = al.findValue("title");
 					String albumTitle = albumTitleNode.textValue();
 
-					downloadAlbum(albumId, albumTitle);
+					downloadAlbum(albumId, albumTitle, forced);
 				}
 				count++;
 				if (limit > 0 && count >= limit) {
@@ -71,8 +72,9 @@ public class AlbumController {
 		return albumService.list();
 	}
 
-	private void downloadAlbum(String albumId, String albumTitle) {
-		if (shouldDownloadAlbum(albumId, albumTitle)) {
+	private void downloadAlbum(String albumId, String albumTitle,
+	        boolean forced) {
+		if (shouldDownloadAlbum(albumId, albumTitle, forced)) {
 
 			LOGGER.info("Reading album {}...", albumTitle);
 			try {
@@ -105,7 +107,11 @@ public class AlbumController {
 		}
 	}
 
-	private boolean shouldDownloadAlbum(String albumId, String albumTitle) {
+	private boolean shouldDownloadAlbum(String albumId, String albumTitle,
+	        boolean forced) {
+		if (forced) {
+			return true;
+		}
 		AlbumStatus status = albumService.albumLocalStatus(albumId);
 		return status == null || status == AlbumStatus.DOWNLOADING ? true
 		        : false;
