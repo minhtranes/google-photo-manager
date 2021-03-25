@@ -19,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
@@ -62,7 +63,8 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		final String searchURL = "https://photoslibrary.googleapis.com/v1/mediaItems:search";
 
 		String bodyWithPage = null;
-		JsonNode ret = null;
+		ObjectNode ret = mapper.createObjectNode();
+		ret.putArray("mediaItems");
 
 		boolean hasNext = false;
 		String nextPageToken = null;
@@ -74,7 +76,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 			ResponseEntity<JsonNode> exchange = restTemplate.exchange(searchURL,
 			        HttpMethod.POST, entity, JsonNode.class);
 			if (exchange.getStatusCode() == HttpStatus.OK) {
-				JsonNode body = exchange.getBody();
+				ObjectNode body = (ObjectNode) exchange.getBody();
 				if ((nextPageToken = hasNextPageToken(body)) != null) {
 					mergeResult(ret, body);
 					hasNext = true;
@@ -84,28 +86,21 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 					                + nextPageToken + "\"}")
 					        .toString();
 				} else {
-					ret = body;
 					hasNext = false;
 					bodyWithPage = null;
 				}
 			}
 		} while (hasNext);
 
-		System.out.println(ret == null ? "NO IMAGE" : ret.toString());
-
 		return ret;
 	}
 
 	private void mergeResult(JsonNode ret, JsonNode body) {
-		if (ret == null) {
-			ret = body;
-			return;
-		}
 		try {
 			JsonNode mediaItems = ret.findValue("mediaItems");
 			JsonNode addedMediaItems = body.findValue("mediaItems");
 			if (mediaItems.isArray()) {
-				((ArrayNode) mediaItems).add(addedMediaItems);
+				((ArrayNode) mediaItems).addAll((ArrayNode) addedMediaItems);
 			}
 		} catch (Exception e) {
 			LOGGER.error(
