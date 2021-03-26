@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,22 +31,48 @@ import vn.minhtran.study.service.AlbumService;
 public class DefaultAlbumService extends AbstractGooglePhoto
         implements AlbumService {
 
+	private static final String FIELD_ALBUMS = "albums";
+	private static final String FIELD_MEDIA_ITEMS = "mediaItems";
 	private RestTemplate restTemplate = new RestTemplate();
 
 	@Override
 	public JsonNode list() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(accessToken());
-		HttpEntity<Map<String, String>> entity = new HttpEntity<>(headers);
-		ResponseEntity<JsonNode> exchange = restTemplate.exchange(
-		        "https://photoslibrary.googleapis.com/v1/albums",
-		        HttpMethod.GET, entity, JsonNode.class);
-		if (exchange.getStatusCode() == HttpStatus.OK) {
-			JsonNode body = exchange.getBody();
-			return body;
+
+		ObjectNode ret = mapper.createObjectNode();
+		ret.putArray(FIELD_ALBUMS);
+
+		UriComponentsBuilder builder = UriComponentsBuilder
+				.fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
+		        .queryParam("pageSize", 50);
+		boolean hasNext = false;
+		try {
+			do {
+				HttpEntity<Map<String, String>> entity = new HttpEntity<>(
+				        headers);
+
+				ResponseEntity<JsonNode> exchange = restTemplate.exchange(
+				        builder.build().toUri(), HttpMethod.GET, entity,
+				        JsonNode.class);
+				if (exchange.getStatusCode() == HttpStatus.OK) {
+					JsonNode body = exchange.getBody();
+					String pageToken = null;
+					if ((pageToken = hasNextPageToken(body)) != null) {
+						mergeResult(ret, body, FIELD_ALBUMS);
+						builder.replaceQueryParam("pageToken", pageToken);
+						hasNext = true;
+					} else {
+						hasNext = false;
+					}
+				}
+			} while (hasNext);
+		} finally {
+			LOGGER.info("Found {} albums from google photo",
+			        ((ArrayNode) ret.findValue(FIELD_ALBUMS)).size());
 		}
 
-		return null;
+		return ret;
 	}
 
 	private static final Logger LOGGER = LoggerFactory
@@ -64,39 +91,45 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 
 		String bodyWithPage = null;
 		ObjectNode ret = mapper.createObjectNode();
-		ret.putArray("mediaItems");
+		ret.putArray(FIELD_MEDIA_ITEMS);
 
 		boolean hasNext = false;
 		String nextPageToken = null;
-		do {
-			HttpEntity<String> entity = new HttpEntity<>(
-			        hasNext ? bodyWithPage : bodyWithoutPage, headers);
-			ResponseEntity<JsonNode> exchange = restTemplate.exchange(searchURL,
-			        HttpMethod.POST, entity, JsonNode.class);
-			if (exchange.getStatusCode() == HttpStatus.OK) {
-				ObjectNode body = (ObjectNode) exchange.getBody();
-				if ((nextPageToken = hasNextPageToken(body)) != null) {
-					mergeResult(ret, body);
-					hasNext = true;
-					bodyWithPage = mapper
-					        .readTree("{\"pageSize\": \"25\",\"albumId\":\""
-					                + albumId + "\",\"pageToken\":\""
-					                + nextPageToken + "\"}")
-					        .toString();
-				} else {
-					hasNext = false;
-					bodyWithPage = null;
+		try {
+			do {
+				HttpEntity<String> entity = new HttpEntity<>(
+				        hasNext ? bodyWithPage : bodyWithoutPage, headers);
+				ResponseEntity<JsonNode> exchange = restTemplate.exchange(
+				        searchURL, HttpMethod.POST, entity, JsonNode.class);
+				if (exchange.getStatusCode() == HttpStatus.OK) {
+					ObjectNode body = (ObjectNode) exchange.getBody();
+					if ((nextPageToken = hasNextPageToken(body)) != null) {
+						mergeResult(ret, body, FIELD_MEDIA_ITEMS);
+						hasNext = true;
+						bodyWithPage = mapper
+						        .readTree("{\"pageSize\": \"25\",\"albumId\":\""
+						                + albumId + "\",\"pageToken\":\""
+						                + nextPageToken + "\"}")
+						        .toString();
+					} else {
+						hasNext = false;
+						bodyWithPage = null;
+					}
 				}
-			}
-		} while (hasNext);
+			} while (hasNext);
+		} finally {
+			LOGGER.info("Found {} media from album [{}]",
+			        ((ArrayNode) ret.findValue(FIELD_MEDIA_ITEMS)).size(),
+			        albumId);
+		}
 
 		return ret;
 	}
 
-	private void mergeResult(JsonNode ret, JsonNode body) {
+	private void mergeResult(JsonNode ret, JsonNode body, String arrayField) {
 		try {
-			JsonNode mediaItems = ret.findValue("mediaItems");
-			JsonNode addedMediaItems = body.findValue("mediaItems");
+			JsonNode mediaItems = ret.findValue(arrayField);
+			JsonNode addedMediaItems = body.findValue(arrayField);
 			if (mediaItems.isArray()) {
 				((ArrayNode) mediaItems).addAll((ArrayNode) addedMediaItems);
 			}
