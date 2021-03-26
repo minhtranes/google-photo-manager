@@ -1,4 +1,5 @@
 spring:
+   jmx.enabled: true
    security:
       oauth2:
          client:
