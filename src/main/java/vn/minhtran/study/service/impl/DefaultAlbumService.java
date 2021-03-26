@@ -44,7 +44,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		ret.putArray(FIELD_ALBUMS);
 
 		UriComponentsBuilder builder = UriComponentsBuilder
-		        .fromPath("https://photoslibrary.googleapis.com/v1/albums")
+				.fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
 		        .queryParam("pageSize", 50);
 		boolean hasNext = false;
 		try {
