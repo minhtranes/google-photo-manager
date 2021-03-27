@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<restrict>
+
+	<remote>
+		<host>127.0.0.1</host>
+	</remote>
+
+	<http>
+		<method>get</method>
+		<method>post</method>
+	</http>
+
+	<commands>
+		<command>read</command>
+		<command>list</command>
+		<command>exec</command>
+	</commands>
+
+	<allow>
+		<mbean>
+			<name>java.lang:type=Memory</name>
+			<operation>gc</operation>
+		</mbean>
+	</allow>
+
+	<deny>
+		<mbean>
+			<name>com.mchange.v2.c3p0:type=PooledDataSource,*</name>
+			<attribute>properties</attribute>
+		</mbean>
+	</deny>
+
+</restrict>
