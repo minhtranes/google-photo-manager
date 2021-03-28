@@ -42,9 +42,11 @@ public class MediaDownloadCompletionScheduler {
 		}
 		ArrayNode downloadingAlbums = albumService
 		        .listAlbum(AlbumStatus.DOWNLOADING);
-		downloadingAlbums.forEach(album -> {
-			checkAndMarkComplete(album);
-		});
+		if (downloadingAlbums != null) {
+			downloadingAlbums.forEach(album -> {
+				checkAndMarkComplete(album);
+			});
+		}
 	}
 
 	@Autowired
