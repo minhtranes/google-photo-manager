@@ -4,8 +4,9 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.repository.CrudRepository;
 
 public abstract class RestorableCache<K extends Serializable, V extends KeyEntity<K>> {
@@ -25,15 +26,18 @@ public abstract class RestorableCache<K extends Serializable, V extends KeyEntit
 	}
 
 	protected abstract CrudRepository<V, K> getRepository();
-	private Executor executor = Executors.newFixedThreadPool(1);
+
+	@Autowired
+	@Qualifier("datasourceSynchronizerExecutor")
+	private Executor executor;
 
 	protected void restore() {
 		try {
-		Iterable<V> all = getRepository().findAll();
-		all.forEach(s -> {
-			store.put(s.getKey(), s);
-		});
-		}catch (Exception e) {
+			Iterable<V> all = getRepository().findAll();
+			all.forEach(s -> {
+				store.put(s.getKey(), s);
+			});
+		} catch (Exception e) {
 		}
 	}
 

@@ -37,8 +37,13 @@ media:
          threadNamePrefix: media-downloader-
          threadNamePrefixSet: true
    completion.cleanup.scheduler:
-      cron: '0/5 * * * * MON-FRI'
-      enabled: false
+      cron: '0/5 * * * * *'
+      enabled: true
+datasource.synchronizer.executor:
+   corePoolSize: 1
+   maxPoolSize: 1
+   threadNamePrefix: ds-sync-
+   threadNamePrefixSet: true
 management:
     endpoints:
        enabled-by-default: true

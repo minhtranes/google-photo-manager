@@ -1,7 +1,6 @@
 package vn.minhtran.study.infra.persistence.storage.impl;
 
 import java.io.InputStream;
-import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +35,11 @@ public class MinioMediaStorage implements MediaStorage {
 		int count = 0;
 
 		try {
-			Iterator<Result<Item>> it = client.listObjects(
+			Iterable<Result<Item>> it = client.listObjects(
 			        ListObjectsArgs.builder().bucket(osProperties.getBucket())
-			                .prefix(prefix).build())
-			        .iterator();
-
-			while (it.hasNext()) {
-				it.next();
+			                .prefix(prefix).recursive(true).build());
+			for (@SuppressWarnings("unused")
+			Result<Item> result : it) {
 				count++;
 			}
 		} catch (Exception e) {
@@ -56,8 +53,9 @@ public class MinioMediaStorage implements MediaStorage {
 
 	@Override
 	public void putObject(String key, InputStream is) throws Exception {
-		client.putObject(PutObjectArgs.builder().bucket(osProperties.getBucket())
-		        .object(key).stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
+		client.putObject(PutObjectArgs.builder()
+		        .bucket(osProperties.getBucket()).object(key)
+		        .stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
 		        .contentType("image/jpg").build());
 	}
 
