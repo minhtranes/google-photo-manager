@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import vn.minhtran.study.infra.persistence.storage.MediaStorage;
+import vn.minhtran.study.model.AlbumInfo;
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.MediaService;
 import vn.minhtran.study.service.impl.AlbumStatus;
@@ -65,11 +67,27 @@ public class AlbumController {
 		ArrayNode downloadingAlbums = albumService
 		        .listAlbum(AlbumStatus.DOWNLOADING);
 		downloadingAlbums.forEach(album -> {
-			downloadAlbum((ObjectNode) album, false);
+			String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID)
+			        .textValue();
+			String albumTitle = album.findValue(AlbumInfo.FIELD_ALBUM_TITLE)
+			        .textValue();
+			int totalMediaCount = album
+			        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT)
+			        .intValue();
+			int downloadedMediaCount = mediaStorage.countObject(albumId);
+			if (downloadedMediaCount < totalMediaCount) {
+				LOGGER.info(
+				        "Album [{}] has downloaded {}/{} media. Re-download it.",
+				        albumId, downloadedMediaCount, totalMediaCount);
+				actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
+			}
 		});
 
 		return downloadingAlbums;
 	}
+
+	@Autowired
+	private MediaStorage mediaStorage;
 
 	@GetMapping("/list")
 	public JsonNode listAlbums(Authentication authentication)
@@ -85,36 +103,39 @@ public class AlbumController {
 
 		if (shouldDownloadAlbum(albumId, albumTitle, forced)) {
 
-			LOGGER.info("Reading album {}...", albumTitle);
-			try {
-				JsonNode albumContent = albumService.albumContent(albumId);
-				JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
-				if (mediaItemsCon.isArray()) {
-					int size = mediaItemsCon.size();
-					album.put("totalMedia", size);
-					LOGGER.info("Album [{}] has {} media", albumId, size);
-					albumService.addAlbum(albumId, albumTitle, size);
-					for (JsonNode mcj : mediaItemsCon) {
-						String filename = mcj.findValue("filename").textValue();
-						JsonNode mediaMetadata = mcj
-						        .findParent("mediaMetadata");
-						String width = mediaMetadata.findValue("width")
-						        .textValue();
-						String height = mediaMetadata.findValue("height")
-						        .textValue();
-						final String baseUrl = String.format("%s=w%s-h%s",
-						        mcj.findValue("baseUrl").textValue(), width,
-						        height);
-						mediaDownloadExecutor.execute(() -> {
-							LOGGER.info("Download file [{}]...", filename);
-							mediaService.downloadPhoto(baseUrl, albumId,
-							        albumTitle, width, height, filename);
-						});
-					}
+			actuallyDownloadAlbum(album, albumId, albumTitle);
+		}
+	}
+
+	private void actuallyDownloadAlbum(ObjectNode album, String albumId,
+	        String albumTitle) {
+		LOGGER.info("Reading album {}...", albumTitle);
+		try {
+			JsonNode albumContent = albumService.albumContent(albumId);
+			JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
+			if (mediaItemsCon.isArray()) {
+				int size = mediaItemsCon.size();
+				album.put("totalMedia", size);
+				LOGGER.info("Album [{}] has {} media", albumId, size);
+				albumService.addAlbum(albumId, albumTitle, size);
+				for (JsonNode mcj : mediaItemsCon) {
+					String filename = mcj.findValue("filename").textValue();
+					JsonNode mediaMetadata = mcj.findParent("mediaMetadata");
+					String width = mediaMetadata.findValue("width").textValue();
+					String height = mediaMetadata.findValue("height")
+					        .textValue();
+					final String baseUrl = String.format("%s=w%s-h%s",
+					        mcj.findValue("baseUrl").textValue(), width,
+					        height);
+					mediaDownloadExecutor.execute(() -> {
+						LOGGER.info("Download file [{}]...", filename);
+						mediaService.downloadPhoto(baseUrl, albumId, albumTitle,
+						        width, height, filename);
+					});
 				}
-			} catch (Exception e) {
-				LOGGER.error("Error when process album [{}]", albumTitle, e);
 			}
+		} catch (Exception e) {
+			LOGGER.error("Error when process album [{}]", albumTitle, e);
 		}
 	}
 
