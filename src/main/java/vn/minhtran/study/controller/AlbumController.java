@@ -63,19 +63,15 @@ public class AlbumController {
 		return albums;
 	}
 
-	@GetMapping("/check-and-redownload/{albumIds}")
+	@GetMapping("/check-and-redownload/{albumId}")
 	public JsonNode checkAndRedownload(
-	        @PathVariable(name = "albumId", required = false) String albumIds) {
+	        @PathVariable(name = "albumId", required = false) String albumId) {
 
 		ArrayNode downloadingAlbums = null;
-		if (albumIds != null) {
-			String[] albumIdss = albumIds.split(",");
+		if (albumId != null) {
 			downloadingAlbums = new ObjectMapper().createArrayNode();
-
-			for (String albumId : albumIdss) {
-				ObjectNode album = albumService.getAlbum(albumId);
-				downloadingAlbums.add(album);
-			}
+			ObjectNode album = albumService.getAlbum(albumId);
+			downloadingAlbums.add(album);
 		} else {
 			downloadingAlbums = albumService.listAlbum(AlbumStatus.DOWNLOADING);
 		}
