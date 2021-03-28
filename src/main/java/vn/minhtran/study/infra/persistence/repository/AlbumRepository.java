@@ -11,5 +11,5 @@ import vn.minhtran.study.service.impl.AlbumStatus;
 @EnableScan
 public interface AlbumRepository extends CrudRepository<AlbumEntity, String> {
 
-	List<AlbumEntity> findByStatus(AlbumStatus[] statuses);
+	List<AlbumEntity> findByStatus(AlbumStatus status);
 }

@@ -8,11 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -61,32 +63,45 @@ public class AlbumController {
 		return albums;
 	}
 
-	@GetMapping("/check-and-redownload")
-	public JsonNode resumeDownload() {
-		ArrayNode downloadingAlbums = albumService
-		        .listAlbum(AlbumStatus.DOWNLOADING);
+	@GetMapping("/check-and-redownload/{albumIds}")
+	public JsonNode checkAndRedownload(
+	        @PathVariable(name = "albumId", required = false) String albumIds) {
 
-		downloadingAlbums.forEach(album -> {
-			String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID)
-			        .textValue();
-			String albumTitle = album.findValue(AlbumInfo.FIELD_ALBUM_TITLE)
-			        .textValue();
-			int totalMediaCount = album
-			        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT)
-			        .intValue();
-			int downloadedMediaCount = mediaStorage.countObject(albumId);
-			if (downloadedMediaCount < totalMediaCount) {
-				LOGGER.info(
-				        "Album [{}] has downloaded {}/{} media. Re-download it.",
-				        albumId, downloadedMediaCount, totalMediaCount);
-				actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
-			} else {
-				((ObjectNode) album).put("ignoredReason",
-				        "Download media equals or greater than total media");
+		ArrayNode downloadingAlbums = null;
+		if (albumIds != null) {
+			String[] albumIdss = albumIds.split(",");
+			downloadingAlbums = new ObjectMapper().createArrayNode();
+
+			for (String albumId : albumIdss) {
+				ObjectNode album = albumService.getAlbum(albumId);
+				downloadingAlbums.add(album);
 			}
+		} else {
+			downloadingAlbums = albumService.listAlbum(AlbumStatus.DOWNLOADING);
+		}
+		downloadingAlbums.forEach(album -> {
+			checkAndRedownload(album);
 		});
 
 		return downloadingAlbums;
+	}
+
+	private void checkAndRedownload(JsonNode album) {
+		String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID).textValue();
+		String albumTitle = album.findValue(AlbumInfo.FIELD_ALBUM_TITLE)
+		        .textValue();
+		int totalMediaCount = album
+		        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT).intValue();
+		int downloadedMediaCount = mediaStorage.countObject(albumId);
+		if (downloadedMediaCount < totalMediaCount) {
+			LOGGER.info(
+			        "Album [{}] has downloaded {}/{} media. Re-download it.",
+			        albumId, downloadedMediaCount, totalMediaCount);
+			actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
+		} else {
+			((ObjectNode) album).put("ignoredReason",
+			        "Download media equals or greater than total media");
+		}
 	}
 
 	@Autowired

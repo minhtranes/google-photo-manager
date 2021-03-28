@@ -2,6 +2,7 @@ package vn.minhtran.study.service.impl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
@@ -81,7 +82,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 
 	@Override
 	public ArrayNode listAlbum(AlbumStatus... statuses) {
-		List<AlbumEntity> entities = albumRepository.findByStatus(statuses);
+		List<AlbumEntity> entities = albumRepository.findByStatus(statuses[0]);
 		if (entities == null || entities.size() <= 0) {
 			return null;
 		}
@@ -90,6 +91,15 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 			ret.add(fromEntity(e));
 		});
 		return ret;
+	}
+
+	@Override
+	public ObjectNode getAlbum(String albumId) {
+		Optional<AlbumEntity> eo = albumRepository.findById(albumId);
+		if (eo.isPresent()) {
+			return fromEntity(eo.get());
+		}
+		return null;
 	}
 
 	private ObjectNode fromEntity(AlbumEntity e) {
