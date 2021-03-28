@@ -12,13 +12,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.ObjectWriteArgs;
-import io.minio.PutObjectArgs;
 import vn.minhtran.study.infra.config.ObjectStorageProperties;
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
+import vn.minhtran.study.infra.persistence.storage.MediaStorage;
 import vn.minhtran.study.service.MediaService;
 
 @Service
@@ -30,26 +26,14 @@ public class DefaultMediaService extends AbstractGooglePhoto
 	@Autowired
 	private ObjectStorageProperties osProperties;
 
-	@Autowired
-	private MinioClient minioClient;
 
 	private static final Logger LOGGER = LoggerFactory
 	        .getLogger(DefaultMediaService.class);
 
 	@PostConstruct
 	void init() {
-
 		final String bucket = osProperties.getBucket();
-		try {
-			boolean bucketExists = minioClient.bucketExists(
-			        BucketExistsArgs.builder().bucket(bucket).build());
-			if (!bucketExists) {
-				minioClient.makeBucket(
-				        MakeBucketArgs.builder().bucket(bucket).build());
-			}
-		} catch (Exception e) {
-			LOGGER.error("Failed to create bucket [{}]", bucket, e);
-		}
+		mediaStorage.makeBucket(bucket);
 	}
 
 	@Override
@@ -60,10 +44,7 @@ public class DefaultMediaService extends AbstractGooglePhoto
 			String file = String.join("/", albumName, filename);
 			try (InputStream is = res.getBody()) {
 				try {
-					minioClient.putObject(PutObjectArgs.builder()
-					        .bucket(osProperties.getBucket()).object(file)
-					        .stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
-					        .contentType("image/jpg").build());
+					mediaStorage.putObject(file, is);
 				} catch (Exception e) {
 					LOGGER.error("Failed to upload the image to object storage",
 					        e);
@@ -72,6 +53,9 @@ public class DefaultMediaService extends AbstractGooglePhoto
 			return file;
 		});
 	}
+
+	@Autowired
+	private MediaStorage mediaStorage;
 
 	@Override
 	protected CrudRepository<AlbumEntity, String> getRepository() {

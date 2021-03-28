@@ -1,5 +1,6 @@
 package vn.minhtran.study.infra.persistence.storage.impl;
 
+import java.io.InputStream;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
@@ -7,8 +8,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import io.minio.BucketExistsArgs;
 import io.minio.ListObjectsArgs;
+import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
+import io.minio.ObjectWriteArgs;
+import io.minio.PutObjectArgs;
 import io.minio.Result;
 import io.minio.messages.Item;
 import vn.minhtran.study.infra.config.ObjectStorageProperties;
@@ -47,6 +52,27 @@ public class MinioMediaStorage implements MediaStorage {
 		}
 
 		return count;
+	}
+
+	@Override
+	public void putObject(String key, InputStream is) throws Exception {
+		client.putObject(PutObjectArgs.builder().bucket(properties.getBucket())
+		        .object(key).stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
+		        .contentType("image/jpg").build());
+	}
+
+	@Override
+	public void makeBucket(String bucket) {
+		try {
+			boolean bucketExists = client.bucketExists(
+			        BucketExistsArgs.builder().bucket(bucket).build());
+			if (!bucketExists) {
+				client.makeBucket(
+				        MakeBucketArgs.builder().bucket(bucket).build());
+			}
+		} catch (Exception e) {
+			LOGGER.error("Failed to create bucket [{}]", bucket, e);
+		}
 	}
 
 }
