@@ -1,15 +1,14 @@
 package vn.minhtran.study.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import vn.minhtran.study.service.impl.AlbumStatus;
 
 public interface AlbumService {
 
-	JsonNode list();
+	ArrayNode list();
 
-	JsonNode albumContent(String albumId) throws Exception;
+	ArrayNode listAlbumMedia(String albumId) throws Exception;
 
 	AlbumStatus albumLocalStatus(String albumId);
 

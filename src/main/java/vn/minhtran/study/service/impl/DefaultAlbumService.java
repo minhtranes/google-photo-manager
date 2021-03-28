@@ -36,12 +36,11 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	private RestTemplate restTemplate = new RestTemplate();
 
 	@Override
-	public JsonNode list() {
+	public ArrayNode list() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(accessToken());
 
-		ObjectNode ret = mapper.createObjectNode();
-		ret.putArray(FIELD_ALBUMS);
+		ArrayNode ret = mapper.createArrayNode();
 
 		UriComponentsBuilder builder = UriComponentsBuilder
 		        .fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
@@ -68,8 +67,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 				}
 			} while (hasNext);
 		} finally {
-			LOGGER.info("Found {} albums from google photo",
-			        ((ArrayNode) ret.findValue(FIELD_ALBUMS)).size());
+			LOGGER.info("Found {} albums from google photo", ret.size());
 		}
 
 		return ret;
@@ -81,12 +79,12 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 
 	@Override
 	public ArrayNode listAlbum(AlbumStatus... statuses) {
-		
+
 		return null;
 	}
 
 	@Override
-	public JsonNode albumContent(String albumId) throws Exception {
+	public ArrayNode listAlbumMedia(String albumId) throws Exception {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(accessToken());
 
@@ -96,8 +94,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		final String searchURL = "https://photoslibrary.googleapis.com/v1/mediaItems:search";
 
 		String bodyWithPage = null;
-		ObjectNode ret = mapper.createObjectNode();
-		ret.putArray(FIELD_MEDIA_ITEMS);
+		ArrayNode ret = mapper.createArrayNode();
 
 		boolean hasNext = false;
 		String nextPageToken = null;
@@ -124,20 +121,17 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 				}
 			} while (hasNext);
 		} finally {
-			LOGGER.info("Found {} media from album [{}]",
-			        ((ArrayNode) ret.findValue(FIELD_MEDIA_ITEMS)).size(),
-			        albumId);
+			LOGGER.info("Found {} media from album [{}]", ret.size(), albumId);
 		}
 
 		return ret;
 	}
 
-	private void mergeResult(JsonNode ret, JsonNode body, String arrayField) {
+	private void mergeResult(ArrayNode ret, JsonNode body, String arrayField) {
 		try {
-			JsonNode mediaItems = ret.findValue(arrayField);
 			JsonNode addedMediaItems = body.findValue(arrayField);
-			if (mediaItems.isArray()) {
-				((ArrayNode) mediaItems).addAll((ArrayNode) addedMediaItems);
+			if (addedMediaItems.isArray()) {
+				ret.addAll((ArrayNode) addedMediaItems);
 			}
 		} catch (Exception e) {
 			LOGGER.error(
