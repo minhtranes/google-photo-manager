@@ -21,9 +21,10 @@ import vn.minhtran.study.model.AlbumInfo;
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.MediaService;
 import vn.minhtran.study.service.impl.AlbumStatus;
+import vn.minhtran.study.service.impl.DefaultAlbumService;
 
 @RestController
-@RequestMapping("albums")
+@RequestMapping(DefaultAlbumService.FIELD_ALBUMS)
 public class AlbumController {
 
 	private static Logger LOGGER = LoggerFactory
@@ -46,12 +47,11 @@ public class AlbumController {
 		if (limit == 0) {
 			return null;
 		}
-		JsonNode albums = albumService.list();
-		JsonNode albumsCon = albums.findValue("albums");
-		if (albumsCon.isArray()) {
+		ArrayNode albums = albumService.list();
+		if (albums.isArray()) {
 			int count = 0;
-			for (JsonNode al : albumsCon) {
-				downloadAlbum((ObjectNode) al, forced);
+			for (JsonNode album : albums) {
+				downloadAlbum((ObjectNode) album, forced);
 				count++;
 				if (limit > 0 && count >= limit) {
 					break;
@@ -115,21 +115,20 @@ public class AlbumController {
 	        String albumTitle) {
 		LOGGER.info("Reading album {}...", albumTitle);
 		try {
-			JsonNode albumContent = albumService.albumContent(albumId);
-			JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
-			if (mediaItemsCon.isArray()) {
-				int size = mediaItemsCon.size();
+			ArrayNode albumMedias = albumService.listAlbumMedia(albumId);
+			if (albumMedias.isArray()) {
+				int size = albumMedias.size();
 				album.put("totalMedia", size);
 				LOGGER.info("Album [{}] has {} media", albumId, size);
 				albumService.addAlbum(albumId, albumTitle, size);
-				for (JsonNode mcj : mediaItemsCon) {
-					String filename = mcj.findValue("filename").textValue();
-					JsonNode mediaMetadata = mcj.findParent("mediaMetadata");
+				for (JsonNode media : albumMedias) {
+					String filename = media.findValue("filename").textValue();
+					JsonNode mediaMetadata = media.findParent("mediaMetadata");
 					String width = mediaMetadata.findValue("width").textValue();
 					String height = mediaMetadata.findValue("height")
 					        .textValue();
 					final String baseUrl = String.format("%s=w%s-h%s",
-					        mcj.findValue("baseUrl").textValue(), width,
+					        media.findValue("baseUrl").textValue(), width,
 					        height);
 					mediaDownloadExecutor.execute(() -> {
 						LOGGER.info("Download file [{}]...", filename);
