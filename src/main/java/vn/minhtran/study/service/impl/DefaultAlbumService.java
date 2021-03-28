@@ -1,5 +1,6 @@
 package vn.minhtran.study.service.impl;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
+import vn.minhtran.study.model.AlbumInfo;
 //import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
 import vn.minhtran.study.service.AlbumService;
 
@@ -79,8 +81,27 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 
 	@Override
 	public ArrayNode listAlbum(AlbumStatus... statuses) {
+		List<AlbumEntity> entities = albumRepository.findByStatus(statuses);
+		if (entities == null || entities.size() <= 0) {
+			return null;
+		}
+		ArrayNode ret = mapper.createArrayNode();
+		entities.forEach(e -> {
+			ret.add(fromEntity(e));
+		});
+		return ret;
+	}
 
-		return null;
+	private ObjectNode fromEntity(AlbumEntity e) {
+		ObjectNode o = mapper.createObjectNode();
+		{
+			o.put(AlbumInfo.FIELD_ALBUM_ID, e.getAlbumId());
+			o.put(AlbumInfo.FIELD_ALBUM_TITLE, e.getTitle());
+			o.put(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT,
+			        e.getNumOfImage().intValue());
+			o.put(AlbumInfo.FIELD_ALBUM_STATUS, e.getStatus());
+		}
+		return o;
 	}
 
 	@Override
