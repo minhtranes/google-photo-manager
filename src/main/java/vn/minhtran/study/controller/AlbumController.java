@@ -63,40 +63,59 @@ public class AlbumController {
 		return albums;
 	}
 
+	@GetMapping("/check-and-redownload")
+	public JsonNode checkAndRedownloadAll() {
+		return checkAndRedownload("all");
+	}
+
 	@GetMapping("/check-and-redownload/{albumId}")
 	public JsonNode checkAndRedownload(
 	        @PathVariable(name = "albumId", required = false) String albumId) {
 
+		if (albumId == null) {
+			return null;
+		}
+
 		ArrayNode downloadingAlbums = null;
-		if (albumId != null) {
+		if ("all".equals(albumId)) {
+			downloadingAlbums = albumService.listAlbum(AlbumStatus.DOWNLOADING);
+		} else {
 			downloadingAlbums = new ObjectMapper().createArrayNode();
 			ObjectNode album = albumService.getAlbum(albumId);
 			downloadingAlbums.add(album);
-		} else {
-			downloadingAlbums = albumService.listAlbum(AlbumStatus.DOWNLOADING);
 		}
-		downloadingAlbums.forEach(album -> {
-			checkAndRedownload(album);
-		});
+		if (downloadingAlbums != null) {
+			downloadingAlbums.forEach(album -> {
+				if (album instanceof ObjectNode) {
+					checkAndRedownload((ObjectNode) album);
+				}
+			});
+		}
 
 		return downloadingAlbums;
 	}
 
-	private void checkAndRedownload(JsonNode album) {
-		String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID).textValue();
-		String albumTitle = album.findValue(AlbumInfo.FIELD_ALBUM_TITLE)
-		        .textValue();
-		int totalMediaCount = album
-		        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT).intValue();
-		int downloadedMediaCount = mediaStorage.countObject(albumId);
-		if (downloadedMediaCount < totalMediaCount) {
-			LOGGER.info(
-			        "Album [{}] has downloaded {}/{} media. Re-download it.",
-			        albumId, downloadedMediaCount, totalMediaCount);
-			actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
-		} else {
-			((ObjectNode) album).put("ignoredReason",
-			        "Download media equals or greater than total media");
+	private void checkAndRedownload(ObjectNode album) {
+		try {
+			String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID)
+			        .textValue();
+			String albumTitle = album.findValue(AlbumInfo.FIELD_ALBUM_TITLE)
+			        .textValue();
+			int totalMediaCount = album
+			        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT)
+			        .intValue();
+			int downloadedMediaCount = mediaStorage.countObject(albumId);
+			if (downloadedMediaCount < totalMediaCount) {
+				LOGGER.info(
+				        "Album [{}] has downloaded {}/{} media. Re-download it.",
+				        albumId, downloadedMediaCount, totalMediaCount);
+				actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
+			} else {
+				((ObjectNode) album).put("ignoredReason",
+				        "Download media equals or greater than total media");
+			}
+		} catch (Exception e) {
+			LOGGER.error("Failed to check or download album", e);
 		}
 	}
 
