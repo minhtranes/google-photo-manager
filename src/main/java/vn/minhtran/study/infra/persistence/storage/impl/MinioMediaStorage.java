@@ -28,7 +28,7 @@ public class MinioMediaStorage implements MediaStorage {
 	private MinioClient client;
 
 	@Autowired
-	private ObjectStorageProperties properties;
+	private ObjectStorageProperties osProperties;
 
 	@Override
 	public int countObject(String prefix) {
@@ -37,7 +37,7 @@ public class MinioMediaStorage implements MediaStorage {
 
 		try {
 			Iterator<Result<Item>> it = client.listObjects(
-			        ListObjectsArgs.builder().bucket(properties.getBucket())
+			        ListObjectsArgs.builder().bucket(osProperties.getBucket())
 			                .prefix(prefix).build())
 			        .iterator();
 
@@ -48,7 +48,7 @@ public class MinioMediaStorage implements MediaStorage {
 		} catch (Exception e) {
 			LOGGER.error(
 			        "Failed to count object from bucket [{}] with prefix [{}]",
-			        properties.getBucket(), prefix);
+			        osProperties.getBucket(), prefix);
 		}
 
 		return count;
@@ -56,7 +56,7 @@ public class MinioMediaStorage implements MediaStorage {
 
 	@Override
 	public void putObject(String key, InputStream is) throws Exception {
-		client.putObject(PutObjectArgs.builder().bucket(properties.getBucket())
+		client.putObject(PutObjectArgs.builder().bucket(osProperties.getBucket())
 		        .object(key).stream(is, -1, ObjectWriteArgs.MIN_MULTIPART_SIZE)
 		        .contentType("image/jpg").build());
 	}
