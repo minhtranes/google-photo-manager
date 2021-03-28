@@ -1,6 +1,7 @@
 package vn.minhtran.study.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import vn.minhtran.study.service.impl.AlbumStatus;
 
@@ -17,5 +18,7 @@ public interface AlbumService {
 	int getAlbumSize(String albumId);
 
 	void downloadComplete(String albumId);
+
+	ArrayNode listAlbum(AlbumStatus... statuses);
 
 }

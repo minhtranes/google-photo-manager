@@ -44,7 +44,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		ret.putArray(FIELD_ALBUMS);
 
 		UriComponentsBuilder builder = UriComponentsBuilder
-				.fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
+		        .fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
 		        .queryParam("pageSize", 50);
 		boolean hasNext = false;
 		try {
@@ -78,6 +78,12 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	private static final Logger LOGGER = LoggerFactory
 	        .getLogger(DefaultAlbumService.class);
 	private ObjectMapper mapper = new ObjectMapper();
+
+	@Override
+	public ArrayNode listAlbum(AlbumStatus... statuses) {
+		
+		return null;
+	}
 
 	@Override
 	public JsonNode albumContent(String albumId) throws Exception {

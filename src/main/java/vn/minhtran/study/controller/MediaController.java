@@ -12,7 +12,7 @@ public class MediaController {
 
 	@GetMapping("/download")
 	public MediaDownloadResponse download() {
-		MediaDownloadResponse ret = new MediaDownloadResponse();
+		final MediaDownloadResponse ret = new MediaDownloadResponse();
 		return ret;
 	}
 }

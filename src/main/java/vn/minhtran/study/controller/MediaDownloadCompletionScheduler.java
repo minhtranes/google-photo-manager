@@ -1,10 +1,6 @@
 package vn.minhtran.study.controller;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.util.Iterator;
 
 import javax.annotation.PostConstruct;
 
@@ -15,7 +11,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import vn.minhtran.study.infra.config.LocalStorageProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import io.minio.ListObjectsArgs;
+import io.minio.MinioClient;
+import io.minio.Result;
+import io.minio.messages.Item;
+import vn.minhtran.study.infra.config.ObjectStorageProperties;
+import vn.minhtran.study.model.AlbumInfo;
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.impl.AlbumStatus;
 
@@ -28,9 +32,6 @@ public class MediaDownloadCompletionScheduler {
 	@Autowired
 	private AlbumService albumService;
 
-	@Autowired
-	private LocalStorageProperties storageProperties;
-
 	@Value("${media.completion.cleanup.scheduler.enabled}")
 	private boolean enabled;
 
@@ -39,55 +40,43 @@ public class MediaDownloadCompletionScheduler {
 		LOGGER.info("Cleanup scheduler was set enabled = {}", enabled);
 	}
 
+	@Autowired
+	private MinioClient minioClient;
+
 	@Scheduled(cron = "${media.completion.cleanup.scheduler.cron}")
 	public void check() {
 		if (!enabled) {
 			LOGGER.debug("Cleanup scheduler was disabled!");
 			return;
 		}
-		File directory = new File(storageProperties.getDirectory());
-		File[] listFiles = directory.listFiles();
-		File archiveDir = new File(storageProperties.getArchiveDirectory());
-		if (!archiveDir.exists()) {
-			archiveDir.mkdirs();
+		ArrayNode downloadingAlbums = albumService
+		        .listAlbum(AlbumStatus.DOWNLOADING);
+		downloadingAlbums.forEach(album -> {
+			checkAndMarkComplete(album);
+		});
+	}
+
+	@Autowired
+	private ObjectStorageProperties osProperties;
+
+	private void checkAndMarkComplete(JsonNode album) {
+		String id = album.findValue(AlbumInfo.FIELD_ALBUM_ID).textValue();
+		int totalMediaCount = album
+		        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT).intValue();
+
+		Iterator<Result<Item>> it = minioClient
+		        .listObjects(ListObjectsArgs.builder()
+		                .bucket(osProperties.getBucket()).prefix(id).build())
+		        .iterator();
+		int downloadedMediaCount = 0;
+		while (it.hasNext()) {
+			it.next();
+			downloadedMediaCount++;
 		}
-		for (File dir : listFiles) {
-			if (dir.isDirectory() && !archiveDir.equals(dir)) {
-				File[] images = dir.listFiles();
-				String albumId = dir.getName();
-				int albumSize = albumService.getAlbumSize(albumId);
-				if (images.length > 0) {
-					if (images.length >= albumSize) {
-						LOGGER.info("Album {} download completed", albumId);
-						albumService.downloadComplete(albumId);
-						for (File f : dir.listFiles()) {
-							try {
-								Path tarDir = archiveDir.toPath()
-								        .resolve(albumId);
-								if (!tarDir.toFile().exists()) {
-									tarDir.toFile().mkdirs();
-								}
-								Files.move(f.toPath(),
-								        tarDir.resolve(f.getName()),
-								        StandardCopyOption.REPLACE_EXISTING);
-							} catch (IOException e) {
-								LOGGER.error(
-								        "Failed to move dir from [{}] to [{}]",
-								        dir.toString(), archiveDir.toString(),
-								        e);
-							}
-						}
-
-					}
-				}
-				if (AlbumStatus.DOWNLOAD_COMPLETED == albumService
-				        .albumLocalStatus(albumId)
-				        && (dir.listFiles() == null
-				                || dir.listFiles().length == 0)) {
-					dir.delete();
-				}
-			}
-
+		if (totalMediaCount <= downloadedMediaCount) {
+			LOGGER.info("Album [{}] was completely downloaded. Size [{}]", id,
+			        downloadedMediaCount);
+			albumService.downloadComplete(id);
 		}
 	}
 }

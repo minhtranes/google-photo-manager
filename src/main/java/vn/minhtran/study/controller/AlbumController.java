@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.MediaService;
@@ -35,7 +37,7 @@ public class AlbumController {
 	private ThreadPoolTaskExecutor mediaDownloadExecutor;
 
 	@GetMapping("/download")
-	public String downloadAlbums(Authentication authentication,
+	public JsonNode downloadAlbums(Authentication authentication,
 	        @RequestParam(name = "limit", required = false, defaultValue = "-1") int limit,
 	        @RequestParam(name = "forced", required = false, defaultValue = "false") boolean forced)
 	        throws IOException {
@@ -47,14 +49,7 @@ public class AlbumController {
 		if (albumsCon.isArray()) {
 			int count = 0;
 			for (JsonNode al : albumsCon) {
-				JsonNode idValueNode = al.findValue("id");
-				if (idValueNode != null) {
-					String albumId = idValueNode.textValue();
-					JsonNode albumTitleNode = al.findValue("title");
-					String albumTitle = albumTitleNode.textValue();
-
-					downloadAlbum(albumId, albumTitle, forced);
-				}
+				downloadAlbum((ObjectNode) al, forced);
 				count++;
 				if (limit > 0 && count >= limit) {
 					break;
@@ -62,7 +57,18 @@ public class AlbumController {
 			}
 		}
 
-		return null;
+		return albums;
+	}
+
+	@GetMapping("/resume")
+	public JsonNode resumeDownload() {
+		ArrayNode downloadingAlbums = albumService
+		        .listAlbum(AlbumStatus.DOWNLOADING);
+		downloadingAlbums.forEach(album -> {
+			downloadAlbum((ObjectNode) album, false);
+		});
+
+		return downloadingAlbums;
 	}
 
 	@GetMapping("/list")
@@ -72,8 +78,11 @@ public class AlbumController {
 		return albumService.list();
 	}
 
-	private void downloadAlbum(String albumId, String albumTitle,
-	        boolean forced) {
+	private void downloadAlbum(ObjectNode album, boolean forced) {
+
+		String albumId = album.findValue("id").textValue();
+		String albumTitle = album.findValue("title").textValue();
+
 		if (shouldDownloadAlbum(albumId, albumTitle, forced)) {
 
 			LOGGER.info("Reading album {}...", albumTitle);
@@ -82,6 +91,7 @@ public class AlbumController {
 				JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
 				if (mediaItemsCon.isArray()) {
 					int size = mediaItemsCon.size();
+					album.put("totalMedia", size);
 					LOGGER.info("Album [{}] has {} media", albumId, size);
 					albumService.addAlbum(albumId, albumTitle, size);
 					for (JsonNode mcj : mediaItemsCon) {
