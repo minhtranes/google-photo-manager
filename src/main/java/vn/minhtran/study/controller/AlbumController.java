@@ -21,10 +21,9 @@ import vn.minhtran.study.model.AlbumInfo;
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.MediaService;
 import vn.minhtran.study.service.impl.AlbumStatus;
-import vn.minhtran.study.service.impl.DefaultAlbumService;
 
 @RestController
-@RequestMapping(DefaultAlbumService.FIELD_ALBUMS)
+@RequestMapping("/albums")
 public class AlbumController {
 
 	private static Logger LOGGER = LoggerFactory
