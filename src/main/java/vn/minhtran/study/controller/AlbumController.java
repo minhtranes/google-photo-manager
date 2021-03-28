@@ -62,10 +62,11 @@ public class AlbumController {
 		return albums;
 	}
 
-	@GetMapping("/resume")
+	@GetMapping("/check-and-redownload")
 	public JsonNode resumeDownload() {
 		ArrayNode downloadingAlbums = albumService
 		        .listAlbum(AlbumStatus.DOWNLOADING);
+
 		downloadingAlbums.forEach(album -> {
 			String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID)
 			        .textValue();
@@ -80,6 +81,9 @@ public class AlbumController {
 				        "Album [{}] has downloaded {}/{} media. Re-download it.",
 				        albumId, downloadedMediaCount, totalMediaCount);
 				actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
+			} else {
+				((ObjectNode) album).put("ignoredReason",
+				        "Download media equals or greater than total media");
 			}
 		});
 
