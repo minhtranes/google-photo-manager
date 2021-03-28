@@ -10,7 +10,7 @@ public interface AlbumService {
 
 	ArrayNode listAlbumMedia(String albumId) throws Exception;
 
-	AlbumStatus albumLocalStatus(String albumId);
+	AlbumStatus getAlbumStatus(String albumId);
 
 	void addAlbum(String albumId, String albumTitle, int size);
 

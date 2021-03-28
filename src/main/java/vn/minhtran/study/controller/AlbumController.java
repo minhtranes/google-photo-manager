@@ -146,7 +146,7 @@ public class AlbumController {
 		if (forced) {
 			return true;
 		}
-		AlbumStatus status = albumService.albumLocalStatus(albumId);
+		AlbumStatus status = albumService.getAlbumStatus(albumId);
 		return status == null || status == AlbumStatus.DOWNLOADING ? true
 		        : false;
 	}

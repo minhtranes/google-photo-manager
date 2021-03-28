@@ -162,7 +162,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	}
 
 	@Override
-	public AlbumStatus albumLocalStatus(String albumId) {
+	public AlbumStatus getAlbumStatus(String albumId) {
 		AlbumEntity albumEntity = get(albumId);
 		return albumEntity == null ? null
 		        : AlbumStatus.valueOf(albumEntity.getStatus());
