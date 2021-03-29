@@ -65,7 +65,13 @@ public class AlbumEntity implements Serializable, KeyEntity<String> {
 
 	@Transient
 	@Override
+	@DynamoDBAttribute
+	@DynamoDBTyped(DynamoDBAttributeType.S)
 	public String getKey() {
 		return albumId;
+	}
+	
+	public void setKey(String key) {
+		
 	}
 }
