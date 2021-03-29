@@ -1,6 +1,8 @@
 package vn.minhtran.study.service.impl;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
@@ -24,6 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import vn.minhtran.study.infra.persistence.entity.AlbumEntity;
 import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
+import vn.minhtran.study.model.AlbumInfo;
 //import vn.minhtran.study.infra.persistence.repository.AlbumRepository;
 import vn.minhtran.study.service.AlbumService;
 
@@ -36,15 +39,14 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	private RestTemplate restTemplate = new RestTemplate();
 
 	@Override
-	public JsonNode list() {
+	public ArrayNode list() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(accessToken());
 
-		ObjectNode ret = mapper.createObjectNode();
-		ret.putArray(FIELD_ALBUMS);
+		ArrayNode ret = mapper.createArrayNode();
 
 		UriComponentsBuilder builder = UriComponentsBuilder
-				.fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
+		        .fromHttpUrl("https://photoslibrary.googleapis.com/v1/albums")
 		        .queryParam("pageSize", 50);
 		boolean hasNext = false;
 		try {
@@ -68,8 +70,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 				}
 			} while (hasNext);
 		} finally {
-			LOGGER.info("Found {} albums from google photo",
-			        ((ArrayNode) ret.findValue(FIELD_ALBUMS)).size());
+			LOGGER.info("Found {} albums from google photo", ret.size());
 		}
 
 		return ret;
@@ -80,7 +81,41 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	private ObjectMapper mapper = new ObjectMapper();
 
 	@Override
-	public JsonNode albumContent(String albumId) throws Exception {
+	public ArrayNode listAlbum(AlbumStatus... statuses) {
+		List<AlbumEntity> entities = albumRepository.findByStatus(statuses[0]);
+		if (entities == null || entities.size() <= 0) {
+			return null;
+		}
+		ArrayNode ret = mapper.createArrayNode();
+		entities.forEach(e -> {
+			ret.add(fromEntity(e));
+		});
+		return ret;
+	}
+
+	@Override
+	public ObjectNode getAlbum(String albumId) {
+		Optional<AlbumEntity> eo = albumRepository.findById(albumId);
+		if (eo.isPresent()) {
+			return fromEntity(eo.get());
+		}
+		return null;
+	}
+
+	private ObjectNode fromEntity(AlbumEntity e) {
+		ObjectNode o = mapper.createObjectNode();
+		{
+			o.put(AlbumInfo.FIELD_ALBUM_ID, e.getAlbumId());
+			o.put(AlbumInfo.FIELD_ALBUM_TITLE, e.getTitle());
+			o.put(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT,
+			        e.getNumOfImage().intValue());
+			o.put(AlbumInfo.FIELD_ALBUM_STATUS, e.getStatus());
+		}
+		return o;
+	}
+
+	@Override
+	public ArrayNode listAlbumMedia(String albumId) throws Exception {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBearerAuth(accessToken());
 
@@ -90,8 +125,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 		final String searchURL = "https://photoslibrary.googleapis.com/v1/mediaItems:search";
 
 		String bodyWithPage = null;
-		ObjectNode ret = mapper.createObjectNode();
-		ret.putArray(FIELD_MEDIA_ITEMS);
+		ArrayNode ret = mapper.createArrayNode();
 
 		boolean hasNext = false;
 		String nextPageToken = null;
@@ -118,20 +152,17 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 				}
 			} while (hasNext);
 		} finally {
-			LOGGER.info("Found {} media from album [{}]",
-			        ((ArrayNode) ret.findValue(FIELD_MEDIA_ITEMS)).size(),
-			        albumId);
+			LOGGER.info("Found {} media from album [{}]", ret.size(), albumId);
 		}
 
 		return ret;
 	}
 
-	private void mergeResult(JsonNode ret, JsonNode body, String arrayField) {
+	private void mergeResult(ArrayNode ret, JsonNode body, String arrayField) {
 		try {
-			JsonNode mediaItems = ret.findValue(arrayField);
 			JsonNode addedMediaItems = body.findValue(arrayField);
-			if (mediaItems.isArray()) {
-				((ArrayNode) mediaItems).addAll((ArrayNode) addedMediaItems);
+			if (addedMediaItems.isArray()) {
+				ret.addAll((ArrayNode) addedMediaItems);
 			}
 		} catch (Exception e) {
 			LOGGER.error(
@@ -162,7 +193,7 @@ public class DefaultAlbumService extends AbstractGooglePhoto
 	}
 
 	@Override
-	public AlbumStatus albumLocalStatus(String albumId) {
+	public AlbumStatus getAlbumStatus(String albumId) {
 		AlbumEntity albumEntity = get(albumId);
 		return albumEntity == null ? null
 		        : AlbumStatus.valueOf(albumEntity.getStatus());

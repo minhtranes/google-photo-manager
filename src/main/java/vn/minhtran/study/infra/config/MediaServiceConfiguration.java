@@ -19,12 +19,19 @@ public class MediaServiceConfiguration {
 	ThreadPoolTaskExecutor mediaDownloadExecutor() {
 		return new ThreadPoolTaskExecutor();
 	}
+	
+	@Bean
+	@ConfigurationProperties(prefix = "datasource.synchronizer.executor")
+	ThreadPoolTaskExecutor datasourceSynchronizerExecutor() {
+		return new ThreadPoolTaskExecutor();
+	}
 
 	@Bean
     protected MBeanExporter mbeanExporter() {
         MBeanExporter exporter = new MBeanExporter();
         Map<String,Object> beans = new HashMap<>();
         beans.put("org.springframework.boot:type=ThreadPoolTaskExecutor,name=MediaDownloadExecutor", mediaDownloadExecutor());
+        beans.put("org.springframework.boot:type=ThreadPoolTaskExecutor,name=DatasourceSynchronizerExecutor", datasourceSynchronizerExecutor());
         exporter.setBeans(beans);
         return exporter;
     }

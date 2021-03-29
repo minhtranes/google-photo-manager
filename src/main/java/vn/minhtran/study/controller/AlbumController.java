@@ -8,18 +8,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import vn.minhtran.study.infra.persistence.storage.MediaStorage;
+import vn.minhtran.study.model.AlbumInfo;
 import vn.minhtran.study.service.AlbumService;
 import vn.minhtran.study.service.MediaService;
 import vn.minhtran.study.service.impl.AlbumStatus;
 
 @RestController
-@RequestMapping("albums")
+@RequestMapping("/albums")
 public class AlbumController {
 
 	private static Logger LOGGER = LoggerFactory
@@ -35,26 +41,18 @@ public class AlbumController {
 	private ThreadPoolTaskExecutor mediaDownloadExecutor;
 
 	@GetMapping("/download")
-	public String downloadAlbums(Authentication authentication,
+	public JsonNode downloadAlbums(Authentication authentication,
 	        @RequestParam(name = "limit", required = false, defaultValue = "-1") int limit,
 	        @RequestParam(name = "forced", required = false, defaultValue = "false") boolean forced)
 	        throws IOException {
 		if (limit == 0) {
 			return null;
 		}
-		JsonNode albums = albumService.list();
-		JsonNode albumsCon = albums.findValue("albums");
-		if (albumsCon.isArray()) {
+		ArrayNode albums = albumService.list();
+		if (albums.isArray()) {
 			int count = 0;
-			for (JsonNode al : albumsCon) {
-				JsonNode idValueNode = al.findValue("id");
-				if (idValueNode != null) {
-					String albumId = idValueNode.textValue();
-					JsonNode albumTitleNode = al.findValue("title");
-					String albumTitle = albumTitleNode.textValue();
-
-					downloadAlbum(albumId, albumTitle, forced);
-				}
+			for (JsonNode album : albums) {
+				downloadAlbum((ObjectNode) album, forced);
 				count++;
 				if (limit > 0 && count >= limit) {
 					break;
@@ -62,8 +60,67 @@ public class AlbumController {
 			}
 		}
 
-		return null;
+		return albums;
 	}
+
+	@GetMapping("/check-and-redownload")
+	public JsonNode checkAndRedownloadAll() {
+		return checkAndRedownload("all");
+	}
+
+	@GetMapping("/check-and-redownload/{albumId}")
+	public JsonNode checkAndRedownload(
+	        @PathVariable(name = "albumId", required = false) String albumId) {
+
+		if (albumId == null) {
+			return null;
+		}
+
+		ArrayNode downloadingAlbums = null;
+		if ("all".equals(albumId)) {
+			downloadingAlbums = albumService.listAlbum(AlbumStatus.DOWNLOADING);
+		} else {
+			downloadingAlbums = new ObjectMapper().createArrayNode();
+			ObjectNode album = albumService.getAlbum(albumId);
+			downloadingAlbums.add(album);
+		}
+		if (downloadingAlbums != null) {
+			downloadingAlbums.forEach(album -> {
+				if (album instanceof ObjectNode) {
+					checkAndRedownload((ObjectNode) album);
+				}
+			});
+		}
+
+		return downloadingAlbums;
+	}
+
+	private void checkAndRedownload(ObjectNode album) {
+		try {
+			String albumId = album.findValue(AlbumInfo.FIELD_ALBUM_ID)
+			        .textValue();
+			String albumTitle = album.findValue(AlbumInfo.FIELD_ALBUM_TITLE)
+			        .textValue();
+			int totalMediaCount = album
+			        .findValue(AlbumInfo.FIELD_ALBUM_TOTAL_MEDIA_COUNT)
+			        .intValue();
+			int downloadedMediaCount = mediaStorage.countObject(albumId);
+			if (downloadedMediaCount < totalMediaCount) {
+				LOGGER.info(
+				        "Album [{}] has downloaded {}/{} media. Re-download it.",
+				        albumId, downloadedMediaCount, totalMediaCount);
+				actuallyDownloadAlbum((ObjectNode) album, albumId, albumTitle);
+			} else {
+				((ObjectNode) album).put("ignoredReason",
+				        "Download media equals or greater than total media");
+			}
+		} catch (Exception e) {
+			LOGGER.error("Failed to check or download album", e);
+		}
+	}
+
+	@Autowired
+	private MediaStorage mediaStorage;
 
 	@GetMapping("/list")
 	public JsonNode listAlbums(Authentication authentication)
@@ -72,39 +129,45 @@ public class AlbumController {
 		return albumService.list();
 	}
 
-	private void downloadAlbum(String albumId, String albumTitle,
-	        boolean forced) {
+	private void downloadAlbum(ObjectNode album, boolean forced) {
+
+		String albumId = album.findValue("id").textValue();
+		String albumTitle = album.findValue("title").textValue();
+
 		if (shouldDownloadAlbum(albumId, albumTitle, forced)) {
 
-			LOGGER.info("Reading album {}...", albumTitle);
-			try {
-				JsonNode albumContent = albumService.albumContent(albumId);
-				JsonNode mediaItemsCon = albumContent.findValue("mediaItems");
-				if (mediaItemsCon.isArray()) {
-					int size = mediaItemsCon.size();
-					LOGGER.info("Album [{}] has {} media", albumId, size);
-					albumService.addAlbum(albumId, albumTitle, size);
-					for (JsonNode mcj : mediaItemsCon) {
-						String filename = mcj.findValue("filename").textValue();
-						JsonNode mediaMetadata = mcj
-						        .findParent("mediaMetadata");
-						String width = mediaMetadata.findValue("width")
-						        .textValue();
-						String height = mediaMetadata.findValue("height")
-						        .textValue();
-						final String baseUrl = String.format("%s=w%s-h%s",
-						        mcj.findValue("baseUrl").textValue(), width,
-						        height);
-						mediaDownloadExecutor.execute(() -> {
-							LOGGER.info("Download file [{}]...", filename);
-							mediaService.downloadPhoto(baseUrl, albumId,
-							        albumTitle, width, height, filename);
-						});
-					}
+			actuallyDownloadAlbum(album, albumId, albumTitle);
+		}
+	}
+
+	private void actuallyDownloadAlbum(ObjectNode album, String albumId,
+	        String albumTitle) {
+		LOGGER.info("Reading album {}...", albumTitle);
+		try {
+			ArrayNode albumMedias = albumService.listAlbumMedia(albumId);
+			if (albumMedias.isArray()) {
+				int size = albumMedias.size();
+				album.put("totalMedia", size);
+				LOGGER.info("Album [{}] has {} media", albumId, size);
+				albumService.addAlbum(albumId, albumTitle, size);
+				for (JsonNode media : albumMedias) {
+					String filename = media.findValue("filename").textValue();
+					JsonNode mediaMetadata = media.findParent("mediaMetadata");
+					String width = mediaMetadata.findValue("width").textValue();
+					String height = mediaMetadata.findValue("height")
+					        .textValue();
+					final String baseUrl = String.format("%s=w%s-h%s",
+					        media.findValue("baseUrl").textValue(), width,
+					        height);
+					mediaDownloadExecutor.execute(() -> {
+						LOGGER.info("Download file [{}]...", filename);
+						mediaService.downloadPhoto(baseUrl, albumId, albumTitle,
+						        width, height, filename);
+					});
 				}
-			} catch (Exception e) {
-				LOGGER.error("Error when process album [{}]", albumTitle, e);
 			}
+		} catch (Exception e) {
+			LOGGER.error("Error when process album [{}]", albumTitle, e);
 		}
 	}
 
@@ -113,7 +176,7 @@ public class AlbumController {
 		if (forced) {
 			return true;
 		}
-		AlbumStatus status = albumService.albumLocalStatus(albumId);
+		AlbumStatus status = albumService.getAlbumStatus(albumId);
 		return status == null || status == AlbumStatus.DOWNLOADING ? true
 		        : false;
 	}
