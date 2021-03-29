@@ -5,7 +5,7 @@ spring:
          client:
             provider:
                google:
-                  authorization-uri: https://accounts.google.com/o/oauth2/auth
+                  authorization-uri: https://accounts.google.com/o/oauth2/auth?access_type=offline
                   token-uri: https://oauth2.googleapis.com/token
             registration:
                google:
